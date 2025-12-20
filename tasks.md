@@ -35,11 +35,13 @@
   - [x] Updated settings_test.exs
   - [x] Updated user_session_controller_test.exs
 
+- [x] Add tests for onboarding flow
+- [x] Add tests for admin pages
+- [x] Add tests for Profiles context
+- [x] Add tests for Interests context
+
 ## Pending
 
-- [ ] Add tests for onboarding flow
-- [ ] Add tests for admin pages
-- [ ] Add tests for user type restrictions
 - [ ] Create events system (events table, user can create events)
 - [ ] Event discovery based on user interests
 - [ ] User profile page (public view)
