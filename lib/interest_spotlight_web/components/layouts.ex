@@ -92,7 +92,19 @@ defmodule InterestSpotlightWeb.Layouts do
             <%!-- User dropdown --%>
             <div class="dropdown dropdown-end">
               <div tabindex="0" role="button" class="btn btn-ghost btn-circle avatar">
-                <.icon name="hero-user-circle" class="size-8" />
+                <%= if @current_scope && @current_scope.user && @current_scope.user.profile_photo do %>
+                  <div class="w-9 h-9 rounded-full overflow-hidden">
+                    <img
+                      src={"/uploads/#{@current_scope.user.profile_photo}"}
+                      alt="Profile"
+                      class="w-full h-full object-cover"
+                    />
+                  </div>
+                <% else %>
+                  <div class="w-9 h-9 rounded-full bg-primary text-primary-content flex items-center justify-center text-sm font-semibold">
+                    {get_initials(@current_scope)}
+                  </div>
+                <% end %>
               </div>
               <ul
                 tabindex="0"
@@ -212,6 +224,24 @@ defmodule InterestSpotlightWeb.Layouts do
       </.flash>
     </div>
     """
+  end
+
+  defp get_initials(nil), do: "?"
+
+  defp get_initials(%{user: nil}), do: "?"
+
+  defp get_initials(%{user: user}) do
+    case user.email do
+      nil ->
+        "?"
+
+      email ->
+        email
+        |> String.split("@")
+        |> List.first()
+        |> String.slice(0, 2)
+        |> String.upcase()
+    end
   end
 
   @doc """
