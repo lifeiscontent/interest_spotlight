@@ -46,4 +46,5 @@ config :phoenix,
 # Configure uploads directory for tests
 config :interest_spotlight,
        :uploads_directory,
-       "/home/petach/Documents/partitions/intrest_spotlight/tests"
+       System.get_env("UPLOADS_DIRECTORY_TEST") ||
+         Path.expand("../../tmp/test_uploads", __DIR__)

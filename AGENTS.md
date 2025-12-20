@@ -1,27 +1,5 @@
 This is a web application written using the Phoenix web framework.
 
-## CRITICAL: Project Directory
-
-**The Phoenix project root is:** `/home/petach/Documents/code/thailand/interest_spotlight`
-
-All mix commands MUST be run from this directory (the one containing `mix.exs`).
-
-## CRITICAL: Running Mix Commands
-
-**Recommended command (works from anywhere):**
-
-```bash
-cd /home/petach/Documents/code/thailand/interest_spotlight && PATH="$HOME/.asdf/installs/elixir/1.19.4-otp-28/bin:$HOME/.asdf/installs/erlang/28.3/bin:$PATH" mix compile
-```
-
-**If already in the interest_spotlight directory:**
-
-```bash
-PATH="$HOME/.asdf/installs/elixir/1.19.4-otp-28/bin:$HOME/.asdf/installs/erlang/28.3/bin:$PATH" mix compile
-```
-
-Replace `mix compile` with any mix command (`mix test`, `mix deps.get`, `mix ecto.migrate`, `mix phx.server`, etc.).
-
 ## Project guidelines
 
 - Use `mix precommit` alias when you are done with all changes and fix any pending issues

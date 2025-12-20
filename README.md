@@ -2,10 +2,26 @@
 
 To start your Phoenix server:
 
+* Copy `.env.example` to `.env` and configure the environment variables
+* Run `source .env` to load environment variables
 * Run `mix setup` to install and setup dependencies
 * Start Phoenix endpoint with `mix phx.server` or inside IEx with `iex -S mix phx.server`
 
 Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
+
+## Environment Variables
+
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `UPLOADS_DIRECTORY` | Directory for storing user uploads (profile photos) | Yes (dev/prod) |
+| `UPLOADS_DIRECTORY_TEST` | Directory for storing test uploads | Yes (test) |
+
+## Running Tests
+
+```bash
+source .env
+mix test
+```
 
 Ready to run in production? Please [check our deployment guides](https://hexdocs.pm/phoenix/deployment.html).
 
