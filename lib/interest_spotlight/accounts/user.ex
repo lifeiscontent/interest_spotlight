@@ -8,8 +8,17 @@ defmodule InterestSpotlight.Accounts.User do
     field :hashed_password, :string, redact: true
     field :confirmed_at, :utc_datetime
     field :authenticated_at, :utc_datetime, virtual: true
+    field :profile_photo, :string
 
     timestamps(type: :utc_datetime)
+  end
+
+  @doc """
+  A user changeset for updating profile information.
+  """
+  def profile_changeset(user, attrs) do
+    user
+    |> cast(attrs, [:profile_photo])
   end
 
   @doc """

@@ -65,7 +65,7 @@ defmodule InterestSpotlightWeb.Layouts do
               </.link>
             </li>
             <li>
-              <.link navigate={~p"/users/settings"} class="flex items-center gap-3">
+              <.link navigate={~p"/profile"} class="flex items-center gap-3">
                 <.icon name="hero-user-circle" class="size-5" />
                 <span>Profile</span>
               </.link>
@@ -138,7 +138,7 @@ defmodule InterestSpotlightWeb.Layouts do
             <.bottom_nav_item href={~p"/dashboard"} icon="hero-home" label="Home" />
             <.bottom_nav_item href="#" icon="hero-calendar" label="Calendar" />
             <.bottom_nav_item href="#" icon="hero-user-group" label="Connections" badge={4} />
-            <.bottom_nav_item href={~p"/users/settings"} icon="hero-user-circle" label="Profile" />
+            <.bottom_nav_item href={~p"/profile"} icon="hero-user-circle" label="Profile" />
           </div>
         </nav>
       </div>

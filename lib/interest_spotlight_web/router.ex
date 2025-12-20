@@ -21,6 +21,8 @@ defmodule InterestSpotlightWeb.Router do
     pipe_through :browser
 
     get "/", PageController, :home
+    # Serve uploaded files from external filesystem
+    get "/uploads/*path", UploadController, :show
   end
 
   # Other scopes may use custom stacks.
@@ -53,6 +55,7 @@ defmodule InterestSpotlightWeb.Router do
     live_session :require_authenticated_user,
       on_mount: [{InterestSpotlightWeb.UserAuth, :require_authenticated}] do
       live "/dashboard", DashboardLive.Index, :index
+      live "/profile", ProfileLive, :index
       live "/users/settings", UserLive.Settings, :edit
       live "/users/settings/confirm-email/:token", UserLive.Settings, :confirm_email
     end
