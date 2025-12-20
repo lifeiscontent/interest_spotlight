@@ -185,7 +185,14 @@ defmodule InterestSpotlight.Accounts do
   """
   def get_user_by_session_token(token) do
     {:ok, query} = UserToken.verify_session_token_query(token)
-    Repo.one(query)
+
+    case Repo.one(query) do
+      {user, authenticated_at, token_inserted_at} ->
+        {%{user | authenticated_at: authenticated_at}, token_inserted_at}
+
+      nil ->
+        nil
+    end
   end
 
   @doc """

@@ -6,17 +6,17 @@ defmodule InterestSpotlightWeb.UserLive.SettingsTest do
   import InterestSpotlight.AccountsFixtures
 
   describe "Settings page" do
+    setup :register_and_log_in_onboarded_user
+
     test "renders settings page", %{conn: conn} do
-      {:ok, _lv, html} =
-        conn
-        |> log_in_user(user_fixture())
-        |> live(~p"/users/settings")
+      {:ok, _lv, html} = live(conn, ~p"/users/settings")
 
       assert html =~ "Change Email"
       assert html =~ "Save Password"
     end
 
-    test "redirects if user is not logged in", %{conn: conn} do
+    test "redirects if user is not logged in", %{conn: _conn} do
+      conn = build_conn()
       assert {:error, redirect} = live(conn, ~p"/users/settings")
 
       assert {:redirect, %{to: path, flash: flash}} = redirect
@@ -25,9 +25,11 @@ defmodule InterestSpotlightWeb.UserLive.SettingsTest do
     end
 
     test "redirects if user is not in sudo mode", %{conn: conn} do
+      user = onboarded_user_fixture()
+
       {:ok, conn} =
         conn
-        |> log_in_user(user_fixture(),
+        |> log_in_user(user,
           token_authenticated_at: DateTime.add(DateTime.utc_now(:second), -11, :minute)
         )
         |> live(~p"/users/settings")
@@ -39,7 +41,7 @@ defmodule InterestSpotlightWeb.UserLive.SettingsTest do
 
   describe "update email form" do
     setup %{conn: conn} do
-      user = user_fixture()
+      user = onboarded_user_fixture()
       %{conn: log_in_user(conn, user), user: user}
     end
 
@@ -91,7 +93,7 @@ defmodule InterestSpotlightWeb.UserLive.SettingsTest do
 
   describe "update password form" do
     setup %{conn: conn} do
-      user = user_fixture()
+      user = onboarded_user_fixture()
       %{conn: log_in_user(conn, user), user: user}
     end
 
@@ -162,7 +164,7 @@ defmodule InterestSpotlightWeb.UserLive.SettingsTest do
 
   describe "confirm email" do
     setup %{conn: conn} do
-      user = user_fixture()
+      user = onboarded_user_fixture()
       email = unique_user_email()
 
       token =

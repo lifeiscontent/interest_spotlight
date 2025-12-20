@@ -37,7 +37,8 @@ defmodule InterestSpotlightWeb.ConnCase do
   end
 
   @doc """
-  Setup helper that registers and logs in users.
+  Setup helper that registers and logs in users (without onboarding).
+  Use this for testing the onboarding flow itself.
 
       setup :register_and_log_in_user
 
@@ -46,6 +47,48 @@ defmodule InterestSpotlightWeb.ConnCase do
   """
   def register_and_log_in_user(%{conn: conn} = context) do
     user = InterestSpotlight.AccountsFixtures.user_fixture()
+    scope = InterestSpotlight.Accounts.Scope.for_user(user)
+
+    opts =
+      context
+      |> Map.take([:token_authenticated_at])
+      |> Enum.into([])
+
+    %{conn: log_in_user(conn, user, opts), user: user, scope: scope}
+  end
+
+  @doc """
+  Setup helper that registers and logs in an onboarded user.
+  Use this for tests that require a fully onboarded regular user.
+
+      setup :register_and_log_in_onboarded_user
+
+  It stores an updated connection and a registered user in the
+  test context.
+  """
+  def register_and_log_in_onboarded_user(%{conn: conn} = context) do
+    user = InterestSpotlight.AccountsFixtures.onboarded_user_fixture()
+    scope = InterestSpotlight.Accounts.Scope.for_user(user)
+
+    opts =
+      context
+      |> Map.take([:token_authenticated_at])
+      |> Enum.into([])
+
+    %{conn: log_in_user(conn, user, opts), user: user, scope: scope}
+  end
+
+  @doc """
+  Setup helper that registers and logs in an admin user.
+  Admins bypass onboarding checks.
+
+      setup :register_and_log_in_admin
+
+  It stores an updated connection and an admin user in the
+  test context.
+  """
+  def register_and_log_in_admin(%{conn: conn} = context) do
+    user = InterestSpotlight.AccountsFixtures.admin_fixture()
     scope = InterestSpotlight.Accounts.Scope.for_user(user)
 
     opts =
