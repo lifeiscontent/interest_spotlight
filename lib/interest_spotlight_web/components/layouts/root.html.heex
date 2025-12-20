@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="h-full">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -25,32 +25,26 @@
           setTheme(localStorage.getItem("phx:theme") || "system");
         }
         window.addEventListener("storage", (e) => e.key === "phx:theme" && setTheme(e.newValue || "system"));
-        
+
         window.addEventListener("phx:set-theme", (e) => setTheme(e.target.dataset.phxTheme));
       })();
     </script>
   </head>
-  <body>
-    <ul class="menu menu-horizontal w-full relative z-10 flex items-center gap-4 px-4 sm:px-6 lg:px-8 justify-end">
-      <%= if @current_scope do %>
-        <li>
-          {@current_scope.user.email}
-        </li>
-        <li>
-          <.link href={~p"/users/settings"}>Settings</.link>
-        </li>
-        <li>
-          <.link href={~p"/users/log-out"} method="delete">Log out</.link>
-        </li>
-      <% else %>
+  <body class="h-full">
+    <%= if @current_scope && @current_scope.user do %>
+      <%!-- Authenticated users: no top nav, layout handles it --%>
+      {@inner_content}
+    <% else %>
+      <%!-- Non-authenticated users: show top nav --%>
+      <ul class="menu menu-horizontal w-full relative z-10 flex items-center gap-4 px-4 sm:px-6 lg:px-8 justify-end">
         <li>
           <.link href={~p"/users/register"}>Register</.link>
         </li>
         <li>
           <.link href={~p"/users/log-in"}>Log in</.link>
         </li>
-      <% end %>
-    </ul>
-    {@inner_content}
+      </ul>
+      {@inner_content}
+    <% end %>
   </body>
 </html>
