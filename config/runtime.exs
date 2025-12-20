@@ -23,10 +23,12 @@ end
 config :interest_spotlight, InterestSpotlightWeb.Endpoint,
   http: [port: String.to_integer(System.get_env("PORT", "4000"))]
 
-# Configure uploads directory for all environments at runtime
-config :interest_spotlight,
-       :uploads_directory,
-       System.get_env("UPLOADS_DIRECTORY") || "/var/lib/interest_spotlight/uploads"
+# Configure uploads directory at runtime (not for test - see test.exs)
+if config_env() != :test do
+  config :interest_spotlight,
+         :uploads_directory,
+         System.get_env("UPLOADS_DIRECTORY") || "/var/lib/interest_spotlight/uploads"
+end
 
 if config_env() == :prod do
   database_url =
