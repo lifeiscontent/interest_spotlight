@@ -280,4 +280,35 @@ defmodule InterestSpotlightWeb.Layouts do
     </div>
     """
   end
+
+  @doc """
+  Renders a minimal auth layout without sidebar or bottom navigation.
+  Used for unauthenticated pages like login and registration.
+
+  ## Examples
+
+      <Layouts.auth flash={@flash}>
+        <h1>Login</h1>
+      </Layouts.auth>
+
+  """
+  attr :flash, :map, required: true, doc: "the map of flash messages"
+
+  slot :inner_block, required: true
+
+  def auth(assigns) do
+    ~H"""
+    <div class="min-h-screen flex flex-col">
+      <main class="flex-1 flex items-center justify-center p-4">
+        <div class="w-full max-w-sm">
+          {render_slot(@inner_block)}
+        </div>
+      </main>
+      <footer class="p-4 flex justify-center">
+        <.theme_toggle />
+      </footer>
+    </div>
+    <.flash_group flash={@flash} />
+    """
+  end
 end
