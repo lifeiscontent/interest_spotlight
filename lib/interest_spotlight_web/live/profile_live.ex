@@ -23,7 +23,7 @@ defmodule InterestSpotlightWeb.ProfileLive do
               <div class="flex-shrink-0">
                 <%= if @user.profile_photo do %>
                   <img
-                    src={~p"/uploads/#{@user.profile_photo}"}
+                    src={"/uploads/#{@user.profile_photo}"}
                     alt="Profile photo"
                     class="w-32 h-32 rounded-full object-cover border-4 border-base-300"
                   />
