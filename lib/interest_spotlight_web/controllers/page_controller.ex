@@ -5,7 +5,9 @@ defmodule InterestSpotlightWeb.PageController do
     if conn.assigns.current_scope && conn.assigns.current_scope.user do
       redirect(conn, to: ~p"/dashboard")
     else
-      render(conn, :home)
+      conn
+      |> assign(:hide_nav, true)
+      |> render(:home)
     end
   end
 end
