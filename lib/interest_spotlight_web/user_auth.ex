@@ -6,6 +6,8 @@ defmodule InterestSpotlightWeb.UserAuth do
 
   alias InterestSpotlight.Accounts
   alias InterestSpotlight.Accounts.Scope
+  alias InterestSpotlight.Accounts.User
+  alias InterestSpotlight.Interests
 
   # Make the remember me cookie valid for 14 days. This should match
   # the session validity setting in UserToken.
@@ -245,6 +247,67 @@ defmodule InterestSpotlightWeb.UserAuth do
     end
   end
 
+  def on_mount(:require_onboarded, _params, session, socket) do
+    socket = mount_current_scope(socket, session)
+    user = socket.assigns.current_scope && socket.assigns.current_scope.user
+
+    cond do
+      is_nil(user) ->
+        socket =
+          socket
+          |> Phoenix.LiveView.put_flash(:error, "You must log in to access this page.")
+          |> Phoenix.LiveView.redirect(to: ~p"/users/log-in")
+
+        {:halt, socket}
+
+      User.admin?(user) ->
+        {:cont, socket}
+
+      not User.onboarding_complete?(user) ->
+        socket = Phoenix.LiveView.redirect(socket, to: ~p"/onboarding")
+        {:halt, socket}
+
+      not Interests.user_has_minimum_interests?(user.id, 3) ->
+        socket = Phoenix.LiveView.redirect(socket, to: ~p"/onboarding/interests")
+        {:halt, socket}
+
+      true ->
+        {:cont, socket}
+    end
+  end
+
+  def on_mount(:require_admin, _params, session, socket) do
+    socket = mount_current_scope(socket, session)
+    user = socket.assigns.current_scope && socket.assigns.current_scope.user
+
+    if user && User.admin?(user) do
+      {:cont, socket}
+    else
+      socket =
+        socket
+        |> Phoenix.LiveView.put_flash(:error, "You don't have access to this page.")
+        |> Phoenix.LiveView.redirect(to: ~p"/")
+
+      {:halt, socket}
+    end
+  end
+
+  def on_mount(:require_user, _params, session, socket) do
+    socket = mount_current_scope(socket, session)
+    user = socket.assigns.current_scope && socket.assigns.current_scope.user
+
+    if user && !User.admin?(user) do
+      {:cont, socket}
+    else
+      socket =
+        socket
+        |> Phoenix.LiveView.put_flash(:error, "You don't have access to this page.")
+        |> Phoenix.LiveView.redirect(to: ~p"/")
+
+      {:halt, socket}
+    end
+  end
+
   defp mount_current_scope(socket, session) do
     Phoenix.Component.assign_new(socket, :current_scope, fn ->
       {user, _} =
@@ -279,4 +342,69 @@ defmodule InterestSpotlightWeb.UserAuth do
   end
 
   defp maybe_store_return_to(conn), do: conn
+
+  @doc """
+  Plug for routes that require the user to have completed onboarding.
+  Checks: first_name, last_name, location filled + at least 3 interests.
+  """
+  def require_onboarded(conn, _opts) do
+    user = conn.assigns.current_scope && conn.assigns.current_scope.user
+
+    cond do
+      is_nil(user) ->
+        conn
+        |> put_flash(:error, "You must log in to access this page.")
+        |> redirect(to: ~p"/users/log-in")
+        |> halt()
+
+      User.admin?(user) ->
+        # Admins skip onboarding
+        conn
+
+      not User.onboarding_complete?(user) ->
+        conn
+        |> redirect(to: ~p"/onboarding")
+        |> halt()
+
+      not Interests.user_has_minimum_interests?(user.id, 3) ->
+        conn
+        |> redirect(to: ~p"/onboarding/interests")
+        |> halt()
+
+      true ->
+        conn
+    end
+  end
+
+  @doc """
+  Plug for routes that require the user to be a regular user (not admin).
+  """
+  def require_user(conn, _opts) do
+    user = conn.assigns.current_scope && conn.assigns.current_scope.user
+
+    if user && !User.admin?(user) do
+      conn
+    else
+      conn
+      |> put_flash(:error, "You don't have access to this page.")
+      |> redirect(to: ~p"/")
+      |> halt()
+    end
+  end
+
+  @doc """
+  Plug for routes that require the user to be an admin.
+  """
+  def require_admin(conn, _opts) do
+    user = conn.assigns.current_scope && conn.assigns.current_scope.user
+
+    if user && User.admin?(user) do
+      conn
+    else
+      conn
+      |> put_flash(:error, "You don't have access to this page.")
+      |> redirect(to: ~p"/")
+      |> halt()
+    end
+  end
 end

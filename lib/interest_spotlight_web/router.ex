@@ -49,11 +49,27 @@ defmodule InterestSpotlightWeb.Router do
 
   ## Authentication routes
 
+  # Onboarding routes (authenticated but not requiring completed onboarding)
   scope "/", InterestSpotlightWeb do
     pipe_through [:browser, :require_authenticated_user]
 
-    live_session :require_authenticated_user,
+    live_session :onboarding,
       on_mount: [{InterestSpotlightWeb.UserAuth, :require_authenticated}] do
+      live "/onboarding", OnboardingLive.BasicInfo, :index
+      live "/onboarding/interests", OnboardingLive.Interests, :index
+      live "/onboarding/about", OnboardingLive.About, :index
+    end
+  end
+
+  # Regular user routes (authenticated + onboarded + non-admin)
+  scope "/", InterestSpotlightWeb do
+    pipe_through [:browser, :require_authenticated_user, :require_onboarded]
+
+    live_session :require_onboarded_user,
+      on_mount: [
+        {InterestSpotlightWeb.UserAuth, :require_authenticated},
+        {InterestSpotlightWeb.UserAuth, :require_onboarded}
+      ] do
       live "/dashboard", DashboardLive.Index, :index
       live "/profile", ProfileLive, :index
       live "/users/settings", UserLive.Settings, :edit
@@ -61,6 +77,20 @@ defmodule InterestSpotlightWeb.Router do
     end
 
     post "/users/update-password", UserSessionController, :update_password
+  end
+
+  # Admin-only routes
+  scope "/admin", InterestSpotlightWeb do
+    pipe_through [:browser, :require_authenticated_user, :require_admin]
+
+    live_session :admin,
+      on_mount: [
+        {InterestSpotlightWeb.UserAuth, :require_authenticated},
+        {InterestSpotlightWeb.UserAuth, :require_admin}
+      ] do
+      live "/", AdminLive.Dashboard, :index
+      live "/interests", AdminLive.Interests, :index
+    end
   end
 
   scope "/", InterestSpotlightWeb do

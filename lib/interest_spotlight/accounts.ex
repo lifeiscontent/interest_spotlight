@@ -314,6 +314,22 @@ defmodule InterestSpotlight.Accounts do
     |> Repo.update()
   end
 
+  @doc """
+  Returns an `%Ecto.Changeset{}` for changing the user onboarding info.
+  """
+  def change_user_onboarding(user, attrs \\ %{}) do
+    User.onboarding_changeset(user, attrs)
+  end
+
+  @doc """
+  Updates the user onboarding info (first_name, last_name, location).
+  """
+  def update_user_onboarding(%User{} = user, attrs) do
+    user
+    |> User.onboarding_changeset(attrs)
+    |> Repo.update()
+  end
+
   ## Token helper
 
   defp update_user_and_delete_all_tokens(changeset) do
