@@ -104,7 +104,9 @@ defmodule InterestSpotlight.Connections do
   Gets a connection by ID.
   """
   def get_connection!(id) do
-    Repo.get!(Connection, id)
+    Connection
+    |> Repo.get!(id)
+    |> Repo.preload([:requester, :user])
   end
 
   @doc """
