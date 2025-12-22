@@ -2,6 +2,7 @@ defmodule InterestSpotlightWeb.ConnectionsLive.Show do
   use InterestSpotlightWeb, :live_view
 
   alias InterestSpotlight.Accounts
+  alias InterestSpotlight.Accounts.User
   alias InterestSpotlight.Connections
   alias InterestSpotlight.Interests
   alias InterestSpotlight.Profiles
@@ -32,6 +33,10 @@ defmodule InterestSpotlightWeb.ConnectionsLive.Show do
       # Get presence data
       presence_map = get_presence_map()
 
+      # Determine if the current user can view the full profile
+      # Full profile is visible if: user's profile is public OR users are connected
+      can_view_profile = User.public_profile?(user) || connection_status == :connected
+
       {:ok,
        socket
        |> assign(:page_title, "#{user.first_name} #{user.last_name}")
@@ -40,7 +45,8 @@ defmodule InterestSpotlightWeb.ConnectionsLive.Show do
        |> assign(:interests, interests)
        |> assign(:connection_status, connection_status)
        |> assign(:connection, connection)
-       |> assign(:online_users, presence_map)}
+       |> assign(:online_users, presence_map)
+       |> assign(:can_view_profile, can_view_profile)}
     end
   end
 
@@ -89,7 +95,8 @@ defmodule InterestSpotlightWeb.ConnectionsLive.Show do
          socket
          |> put_flash(:info, "Connection accepted")
          |> assign(:connection_status, :connected)
-         |> assign(:connection, updated_connection)}
+         |> assign(:connection, updated_connection)
+         |> assign(:can_view_profile, true)}
 
       {:error, _changeset} ->
         {:noreply, put_flash(socket, :error, "Failed to accept connection")}
@@ -119,11 +126,17 @@ defmodule InterestSpotlightWeb.ConnectionsLive.Show do
 
     case Connections.remove_connection(connection) do
       {:ok, _} ->
+        # Reload user to get latest profile_visibility and recalculate can_view_profile
+        user = Accounts.get_user!(socket.assigns.user.id)
+        can_view_profile = User.public_profile?(user)
+
         {:noreply,
          socket
          |> put_flash(:info, "Connection removed")
+         |> assign(:user, user)
          |> assign(:connection_status, nil)
-         |> assign(:connection, nil)}
+         |> assign(:connection, nil)
+         |> assign(:can_view_profile, can_view_profile)}
 
       {:error, _changeset} ->
         {:noreply, put_flash(socket, :error, "Failed to remove connection")}
@@ -163,7 +176,8 @@ defmodule InterestSpotlightWeb.ConnectionsLive.Show do
        |> assign(:connection_status, :connected)
        |> assign(:connection, connection)
        |> assign(:interests, interests)
-       |> assign(:profile, profile)}
+       |> assign(:profile, profile)
+       |> assign(:can_view_profile, true)}
     else
       {:noreply, socket}
     end
@@ -187,10 +201,17 @@ defmodule InterestSpotlightWeb.ConnectionsLive.Show do
 
   @impl true
   def handle_info({:connection_removed, _connection}, socket) do
+    # Reload user to get latest profile_visibility
+    user = Accounts.get_user!(socket.assigns.user.id)
+    # Recalculate can_view_profile since connection is removed
+    can_view_profile = User.public_profile?(user)
+
     {:noreply,
      socket
+     |> assign(:user, user)
      |> assign(:connection_status, nil)
-     |> assign(:connection, nil)}
+     |> assign(:connection, nil)
+     |> assign(:can_view_profile, can_view_profile)}
   end
 
   @impl true
@@ -280,108 +301,106 @@ defmodule InterestSpotlightWeb.ConnectionsLive.Show do
         </div>
 
         <%!-- Content Sections ---%>
-        <%= cond do %>
-          <%!-- Show full profile if connected ---%>
-          <% @connection_status == :connected -> %>
-            <%!-- Interests Section ---%>
-            <%= if length(@interests) > 0 do %>
-              <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-                <h2 class="text-xl font-semibold mb-4">Interests</h2>
-                <div class="flex flex-wrap gap-2">
-                  <%= for user_interest <- @interests do %>
-                    <span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
-                      {user_interest.interest.name}
-                    </span>
-                  <% end %>
-                </div>
+        <%= if @can_view_profile do %>
+          <%!-- Interests Section ---%>
+          <%= if length(@interests) > 0 do %>
+            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+              <h2 class="text-xl font-semibold mb-4">Interests</h2>
+              <div class="flex flex-wrap gap-2">
+                <%= for user_interest <- @interests do %>
+                  <span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
+                    {user_interest.interest.name}
+                  </span>
+                <% end %>
               </div>
-            <% end %>
-            <%!-- Bio Section ---%>
-            <%= if @profile && @profile.bio do %>
-              <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-                <h2 class="text-xl font-semibold mb-4">About</h2>
-                <p class="text-gray-700 whitespace-pre-wrap">{@profile.bio}</p>
-              </div>
-            <% end %>
-            <%!-- Social Links Section ---%>
-            <%= if @profile && has_social_links?(@profile) do %>
-              <div class="bg-white rounded-lg shadow-md p-6">
-                <h2 class="text-xl font-semibold mb-4">Social Links</h2>
-                <div class="space-y-2">
-                  <%= if @profile.instagram do %>
-                    <p>
-                      <.icon name="hero-camera" class="w-5 h-5 inline" /> Instagram:
-                      <a
-                        href={"https://instagram.com/#{@profile.instagram}"}
-                        target="_blank"
-                        class="text-blue-600 hover:underline"
-                      >
-                        @{@profile.instagram}
-                      </a>
-                    </p>
-                  <% end %>
-                  <%= if @profile.facebook do %>
-                    <p>
-                      <.icon name="hero-user-circle" class="w-5 h-5 inline" /> Facebook:
-                      <a
-                        href={"https://facebook.com/#{@profile.facebook}"}
-                        target="_blank"
-                        class="text-blue-600 hover:underline"
-                      >
-                        {@profile.facebook}
-                      </a>
-                    </p>
-                  <% end %>
-                  <%= if @profile.twitter do %>
-                    <p>
-                      <.icon name="hero-at-symbol" class="w-5 h-5 inline" /> Twitter:
-                      <a
-                        href={"https://twitter.com/#{@profile.twitter}"}
-                        target="_blank"
-                        class="text-blue-600 hover:underline"
-                      >
-                        @{@profile.twitter}
-                      </a>
-                    </p>
-                  <% end %>
-                  <%= if @profile.tiktok do %>
-                    <p>
-                      <.icon name="hero-musical-note" class="w-5 h-5 inline" /> TikTok:
-                      <a
-                        href={"https://tiktok.com/@#{@profile.tiktok}"}
-                        target="_blank"
-                        class="text-blue-600 hover:underline"
-                      >
-                        @{@profile.tiktok}
-                      </a>
-                    </p>
-                  <% end %>
-                  <%= if @profile.youtube do %>
-                    <p>
-                      <.icon name="hero-play" class="w-5 h-5 inline" /> YouTube:
-                      <a
-                        href={"https://youtube.com/@#{@profile.youtube}"}
-                        target="_blank"
-                        class="text-blue-600 hover:underline"
-                      >
-                        @{@profile.youtube}
-                      </a>
-                    </p>
-                  <% end %>
-                </div>
-              </div>
-            <% end %>
-            <%!-- Show limited profile if not connected ---%>
-          <% true -> %>
-            <div class="bg-gray-50 rounded-lg p-8 text-center">
-              <.icon name="hero-lock-closed" class="w-16 h-16 mx-auto text-gray-400 mb-4" />
-              <h3 class="text-xl font-semibold text-gray-700 mb-2">
-                The user has hidden the content
-              </h3>
-              <p class="text-gray-600">
-                Connect with {@user.first_name} to view their full profile
-              </p>
             </div>
+          <% end %>
+          <%!-- Bio Section ---%>
+          <%= if @profile && @profile.bio do %>
+            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+              <h2 class="text-xl font-semibold mb-4">About</h2>
+              <p class="text-gray-700 whitespace-pre-wrap">{@profile.bio}</p>
+            </div>
+          <% end %>
+          <%!-- Social Links Section ---%>
+          <%= if @profile && has_social_links?(@profile) do %>
+            <div class="bg-white rounded-lg shadow-md p-6">
+              <h2 class="text-xl font-semibold mb-4">Social Links</h2>
+              <div class="space-y-2">
+                <%= if @profile.instagram do %>
+                  <p>
+                    <.icon name="hero-camera" class="w-5 h-5 inline" /> Instagram:
+                    <a
+                      href={"https://instagram.com/#{@profile.instagram}"}
+                      target="_blank"
+                      class="text-blue-600 hover:underline"
+                    >
+                      @{@profile.instagram}
+                    </a>
+                  </p>
+                <% end %>
+                <%= if @profile.facebook do %>
+                  <p>
+                    <.icon name="hero-user-circle" class="w-5 h-5 inline" /> Facebook:
+                    <a
+                      href={"https://facebook.com/#{@profile.facebook}"}
+                      target="_blank"
+                      class="text-blue-600 hover:underline"
+                    >
+                      {@profile.facebook}
+                    </a>
+                  </p>
+                <% end %>
+                <%= if @profile.twitter do %>
+                  <p>
+                    <.icon name="hero-at-symbol" class="w-5 h-5 inline" /> Twitter:
+                    <a
+                      href={"https://twitter.com/#{@profile.twitter}"}
+                      target="_blank"
+                      class="text-blue-600 hover:underline"
+                    >
+                      @{@profile.twitter}
+                    </a>
+                  </p>
+                <% end %>
+                <%= if @profile.tiktok do %>
+                  <p>
+                    <.icon name="hero-musical-note" class="w-5 h-5 inline" /> TikTok:
+                    <a
+                      href={"https://tiktok.com/@#{@profile.tiktok}"}
+                      target="_blank"
+                      class="text-blue-600 hover:underline"
+                    >
+                      @{@profile.tiktok}
+                    </a>
+                  </p>
+                <% end %>
+                <%= if @profile.youtube do %>
+                  <p>
+                    <.icon name="hero-play" class="w-5 h-5 inline" /> YouTube:
+                    <a
+                      href={"https://youtube.com/@#{@profile.youtube}"}
+                      target="_blank"
+                      class="text-blue-600 hover:underline"
+                    >
+                      @{@profile.youtube}
+                    </a>
+                  </p>
+                <% end %>
+              </div>
+            </div>
+          <% end %>
+        <% else %>
+          <%!-- Show limited profile if profile is private and not connected ---%>
+          <div class="bg-gray-50 rounded-lg p-8 text-center">
+            <.icon name="hero-lock-closed" class="w-16 h-16 mx-auto text-gray-400 mb-4" />
+            <h3 class="text-xl font-semibold text-gray-700 mb-2">
+              This profile is private
+            </h3>
+            <p class="text-gray-600">
+              Connect with {@user.first_name} to view their full profile
+            </p>
+          </div>
         <% end %>
       </div>
     </Layouts.app>

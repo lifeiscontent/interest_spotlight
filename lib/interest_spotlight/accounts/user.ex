@@ -13,6 +13,7 @@ defmodule InterestSpotlight.Accounts.User do
     field :last_name, :string
     field :location, :string
     field :user_type, :string, default: "user"
+    field :profile_visibility, :string, default: "public"
 
     has_one :profile, InterestSpotlight.Profiles.Profile
     many_to_many :interests, InterestSpotlight.Interests.Interest, join_through: "user_interests"
@@ -31,8 +32,15 @@ defmodule InterestSpotlight.Accounts.User do
   """
   def profile_changeset(user, attrs) do
     user
-    |> cast(attrs, [:profile_photo, :first_name, :last_name, :location])
+    |> cast(attrs, [:profile_photo, :first_name, :last_name, :location, :profile_visibility])
+    |> validate_inclusion(:profile_visibility, ["public", "private"])
   end
+
+  @doc """
+  Checks if user profile is public.
+  """
+  def public_profile?(%__MODULE__{profile_visibility: "public"}), do: true
+  def public_profile?(_), do: false
 
   @doc """
   A user changeset for the onboarding step (basic info).

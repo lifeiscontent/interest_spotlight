@@ -109,6 +109,42 @@ defmodule InterestSpotlightWeb.ProfileLive do
             </div>
           </div>
 
+          <%!-- Profile Visibility Section --%>
+          <div class="card bg-base-200 p-6">
+            <h3 class="text-lg font-semibold mb-4">Profile Visibility</h3>
+            <p class="text-sm text-base-content/70 mb-4">
+              Control who can see your profile information (interests, bio, social links).
+            </p>
+
+            <div class="form-control">
+              <label class="label cursor-pointer justify-start gap-4">
+                <input
+                  type="checkbox"
+                  id="profile-visibility-toggle"
+                  class="toggle toggle-primary"
+                  checked={@user.profile_visibility == "public"}
+                  phx-click="toggle_visibility"
+                />
+                <div>
+                  <span class="label-text font-medium">
+                    <%= if @user.profile_visibility == "public" do %>
+                      <.icon name="hero-globe-alt" class="w-4 h-4 inline" /> Public Profile
+                    <% else %>
+                      <.icon name="hero-lock-closed" class="w-4 h-4 inline" /> Private Profile
+                    <% end %>
+                  </span>
+                  <p class="text-xs text-base-content/60 mt-1">
+                    <%= if @user.profile_visibility == "public" do %>
+                      Anyone can view your full profile
+                    <% else %>
+                      Only your connections can view your full profile
+                    <% end %>
+                  </p>
+                </div>
+              </label>
+            </div>
+          </div>
+
           <%!-- User Info Section --%>
           <div class="card bg-base-200 p-6">
             <h3 class="text-lg font-semibold mb-4">Account Information</h3>
@@ -148,6 +184,22 @@ defmodule InterestSpotlightWeb.ProfileLive do
   @impl true
   def handle_event("validate", _params, socket) do
     {:noreply, socket}
+  end
+
+  def handle_event("toggle_visibility", _params, socket) do
+    user = socket.assigns.user
+    new_visibility = if user.profile_visibility == "public", do: "private", else: "public"
+
+    case Accounts.update_user_profile(user, %{profile_visibility: new_visibility}) do
+      {:ok, updated_user} ->
+        {:noreply,
+         socket
+         |> assign(:user, updated_user)
+         |> put_flash(:info, "Profile visibility updated to #{new_visibility}")}
+
+      {:error, _changeset} ->
+        {:noreply, put_flash(socket, :error, "Failed to update profile visibility")}
+    end
   end
 
   def handle_event("cancel_upload", %{"ref" => ref}, socket) do

@@ -5,6 +5,7 @@ defmodule InterestSpotlightWeb.ConnectionsLive.ShowTest do
   import InterestSpotlight.AccountsFixtures
   import InterestSpotlight.ConnectionsFixtures
 
+  alias InterestSpotlight.Accounts
   alias InterestSpotlight.Connections
   alias InterestSpotlight.Profiles
 
@@ -223,14 +224,19 @@ defmodule InterestSpotlightWeb.ConnectionsLive.ShowTest do
       refute result =~ "Accept Request"
     end
 
-    test "shows full profile after accepting connection", %{conn: conn, user: user} do
+    test "shows full profile after accepting connection from private user", %{
+      conn: conn,
+      user: user
+    } do
       other_user = onboarded_user_fixture()
+      # Make the other user's profile private
+      {:ok, _} = Accounts.update_user_profile(other_user, %{profile_visibility: "private"})
       connection_request_fixture(other_user.id, user.id)
 
       {:ok, lv, html} = live(conn, ~p"/connections/#{other_user.id}")
 
-      # Should show hidden content message before accepting
-      assert html =~ "The user has hidden the content"
+      # Should show hidden content message before accepting (private profile)
+      assert html =~ "This profile is private"
 
       result =
         lv
@@ -238,7 +244,7 @@ defmodule InterestSpotlightWeb.ConnectionsLive.ShowTest do
         |> render_click()
 
       # Should show profile sections after accepting
-      refute result =~ "The user has hidden the content"
+      refute result =~ "This profile is private"
     end
   end
 
@@ -335,52 +341,73 @@ defmodule InterestSpotlightWeb.ConnectionsLive.ShowTest do
       assert result =~ "phx-click=\"send_connection_request\""
     end
 
-    test "hides profile content after removing connection", %{conn: conn, user: user} do
+    test "hides profile content after removing connection from private user", %{
+      conn: conn,
+      user: user
+    } do
       other_user = onboarded_user_fixture()
+      # Make the other user's profile private
+      {:ok, _} = Accounts.update_user_profile(other_user, %{profile_visibility: "private"})
       accepted_connection_fixture(user.id, other_user.id)
 
       {:ok, lv, html} = live(conn, ~p"/connections/#{other_user.id}")
 
-      # Should show profile before removing
-      refute html =~ "The user has hidden the content"
+      # Should show profile before removing (connected)
+      refute html =~ "This profile is private"
 
       result =
         lv
         |> element("button[phx-click='remove_connection']")
         |> render_click()
 
-      # Should show hidden message after removing
-      assert result =~ "The user has hidden the content"
+      # Should show hidden message after removing (private profile, not connected)
+      assert result =~ "This profile is private"
     end
   end
 
   describe "Profile privacy" do
     setup :register_and_log_in_onboarded_user
 
-    test "hides interests when not connected", %{conn: conn} do
+    test "hides interests when not connected and profile is private", %{conn: conn} do
       other_user = onboarded_user_fixture()
+      # Make the other user's profile private
+      {:ok, _} = Accounts.update_user_profile(other_user, %{profile_visibility: "private"})
 
       {:ok, _lv, html} = live(conn, ~p"/connections/#{other_user.id}")
 
-      assert html =~ "The user has hidden the content"
+      assert html =~ "This profile is private"
       refute html =~ "Interests"
     end
 
-    test "hides bio when not connected", %{conn: conn, user: _user} do
+    test "shows interests when not connected but profile is public", %{conn: conn} do
       other_user = onboarded_user_fixture()
+      # Profile is public by default
+
+      {:ok, _lv, html} = live(conn, ~p"/connections/#{other_user.id}")
+
+      refute html =~ "This profile is private"
+      assert html =~ "Interests"
+    end
+
+    test "hides bio when not connected and profile is private", %{conn: conn} do
+      other_user = onboarded_user_fixture()
+      # Make the other user's profile private
+      {:ok, _} = Accounts.update_user_profile(other_user, %{profile_visibility: "private"})
 
       # Add bio to other user's profile
       {:ok, _profile} = Profiles.create_profile(other_user.id, %{bio: "This is my bio"})
 
       {:ok, _lv, html} = live(conn, ~p"/connections/#{other_user.id}")
 
-      assert html =~ "The user has hidden the content"
+      assert html =~ "This profile is private"
       refute html =~ "This is my bio"
       refute html =~ "About"
     end
 
-    test "hides social links when not connected", %{conn: conn} do
+    test "hides social links when not connected and profile is private", %{conn: conn} do
       other_user = onboarded_user_fixture()
+      # Make the other user's profile private
+      {:ok, _} = Accounts.update_user_profile(other_user, %{profile_visibility: "private"})
 
       # Add social links to other user's profile
       {:ok, _profile} =
@@ -391,18 +418,20 @@ defmodule InterestSpotlightWeb.ConnectionsLive.ShowTest do
 
       {:ok, _lv, html} = live(conn, ~p"/connections/#{other_user.id}")
 
-      assert html =~ "The user has hidden the content"
+      assert html =~ "This profile is private"
       refute html =~ "Social Links"
       refute html =~ "@testuser"
     end
 
-    test "shows interests when connected", %{conn: conn, user: user} do
+    test "shows interests when connected to private profile", %{conn: conn, user: user} do
       other_user = onboarded_user_fixture()
+      # Make the other user's profile private
+      {:ok, _} = Accounts.update_user_profile(other_user, %{profile_visibility: "private"})
       accepted_connection_fixture(user.id, other_user.id)
 
       {:ok, _lv, html} = live(conn, ~p"/connections/#{other_user.id}")
 
-      refute html =~ "The user has hidden the content"
+      refute html =~ "This profile is private"
       assert html =~ "Interests"
     end
 
@@ -519,20 +548,24 @@ defmodule InterestSpotlightWeb.ConnectionsLive.ShowTest do
 
       html = render(lv)
 
-      # Should now show Remove Connection button and full profile
+      # Should now show Remove Connection button
       assert html =~ "Remove Connection"
-      refute html =~ "The user has hidden the content"
     end
 
-    test "updates UI when other user removes connection", %{conn: conn, user: user} do
+    test "updates UI when other user removes connection from private profile", %{
+      conn: conn,
+      user: user
+    } do
       other_user = onboarded_user_fixture()
+      # Make the other user's profile private
+      {:ok, _} = Accounts.update_user_profile(other_user, %{profile_visibility: "private"})
       connection = accepted_connection_fixture(user.id, other_user.id)
 
       {:ok, lv, html} = live(conn, ~p"/connections/#{other_user.id}")
 
-      # Should show Remove Connection button and full profile initially
+      # Should show Remove Connection button and full profile initially (connected)
       assert html =~ "Remove Connection"
-      refute html =~ "The user has hidden the content"
+      refute html =~ "This profile is private"
 
       # Simulate other user removing the connection
       {:ok, _removed} = Connections.remove_connection(connection)
@@ -542,9 +575,9 @@ defmodule InterestSpotlightWeb.ConnectionsLive.ShowTest do
 
       html = render(lv)
 
-      # Should now show Connect button and hidden content
+      # Should now show Connect button and hidden content (private profile, not connected)
       assert html =~ "Connect"
-      assert html =~ "The user has hidden the content"
+      assert html =~ "This profile is private"
     end
   end
 end

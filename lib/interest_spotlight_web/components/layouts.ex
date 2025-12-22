@@ -101,8 +101,12 @@ defmodule InterestSpotlightWeb.Layouts do
                     />
                   </div>
                 <% else %>
-                  <div class="w-9 h-9 rounded-full bg-primary text-primary-content flex items-center justify-center text-sm font-semibold">
-                    {get_initials(@current_scope)}
+                  <div class="avatar placeholder">
+                    <div class="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-secondary">
+                      <span class="text-sm font-bold text-primary-content flex items-center justify-center w-full h-full">
+                        {get_initials(@current_scope)}
+                      </span>
+                    </div>
                   </div>
                 <% end %>
               </div>
@@ -112,6 +116,11 @@ defmodule InterestSpotlightWeb.Layouts do
               >
                 <li class="menu-title px-2 py-1 text-xs opacity-70">
                   {@current_scope && @current_scope.user && @current_scope.user.email}
+                </li>
+                <li>
+                  <.link navigate={~p"/profile"}>
+                    <.icon name="hero-user-circle" class="size-4" /> Profile
+                  </.link>
                 </li>
                 <li>
                   <.link navigate={~p"/users/settings"}>
@@ -231,16 +240,18 @@ defmodule InterestSpotlightWeb.Layouts do
   defp get_initials(%{user: nil}), do: "?"
 
   defp get_initials(%{user: user}) do
-    case user.email do
-      nil ->
-        "?"
+    cond do
+      user.first_name && user.last_name ->
+        String.upcase("#{String.first(user.first_name)}#{String.first(user.last_name)}")
 
-      email ->
-        email
-        |> String.split("@")
-        |> List.first()
-        |> String.slice(0, 2)
-        |> String.upcase()
+      user.first_name ->
+        String.upcase(String.slice(user.first_name, 0..1))
+
+      user.email ->
+        String.upcase(String.first(user.email))
+
+      true ->
+        "?"
     end
   end
 

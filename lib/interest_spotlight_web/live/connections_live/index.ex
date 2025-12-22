@@ -338,9 +338,9 @@ defmodule InterestSpotlightWeb.ConnectionsLive.Index do
                     <div class="card-actions">
                       <%= case Map.get(@connection_status_map, user.id) do %>
                         <% :connected -> %>
-                          <.link navigate={~p"/connections/#{user.id}"} class="btn btn-sm btn-block">
-                            View Profile
-                          </.link>
+                          <span class="btn btn-sm btn-block btn-ghost no-animation cursor-default">
+                            <.icon name="hero-check-circle" class="w-4 h-4 text-success" /> Connected
+                          </span>
                         <% :pending_sent -> %>
                           <button class="btn btn-sm btn-block btn-disabled" disabled>
                             Request Sent
