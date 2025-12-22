@@ -1,0 +1,309 @@
+defmodule InterestSpotlightWeb.ConnectionsLive.Show do
+  use InterestSpotlightWeb, :live_view
+
+  alias InterestSpotlight.Accounts
+  alias InterestSpotlight.Connections
+  alias InterestSpotlight.Interests
+  alias InterestSpotlight.Profiles
+
+  @impl true
+  def mount(%{"id" => user_id}, _session, socket) do
+    current_user = socket.assigns.current_scope.user
+
+    # Don't allow viewing your own profile here
+    if to_string(current_user.id) == user_id do
+      {:ok,
+       socket
+       |> put_flash(:error, "Cannot view your own profile here")
+       |> push_navigate(to: ~p"/profile")}
+    else
+      user = Accounts.get_user!(user_id)
+      profile = Profiles.get_profile_by_user_id(user.id)
+      interests = Interests.list_user_interests(user.id)
+      connection_status = Connections.connection_status(current_user.id, user.id)
+      connection = Connections.get_connection_between(current_user.id, user.id)
+
+      {:ok,
+       socket
+       |> assign(:page_title, "#{user.first_name} #{user.last_name}")
+       |> assign(:user, user)
+       |> assign(:profile, profile)
+       |> assign(:interests, interests)
+       |> assign(:connection_status, connection_status)
+       |> assign(:connection, connection)}
+    end
+  end
+
+  @impl true
+  def handle_event("send_connection_request", _params, socket) do
+    current_user = socket.assigns.current_scope.user
+    user = socket.assigns.user
+
+    case Connections.create_connection_request(current_user.id, user.id) do
+      {:ok, connection} ->
+        {:noreply,
+         socket
+         |> put_flash(:info, "Connection request sent")
+         |> assign(:connection_status, :pending_sent)
+         |> assign(:connection, connection)}
+
+      {:error, _changeset} ->
+        {:noreply, put_flash(socket, :error, "Failed to send connection request")}
+    end
+  end
+
+  @impl true
+  def handle_event("cancel_connection_request", _params, socket) do
+    connection = socket.assigns.connection
+
+    case Connections.cancel_connection_request(connection) do
+      {:ok, _} ->
+        {:noreply,
+         socket
+         |> put_flash(:info, "Connection request cancelled")
+         |> assign(:connection_status, nil)
+         |> assign(:connection, nil)}
+
+      {:error, _changeset} ->
+        {:noreply, put_flash(socket, :error, "Failed to cancel request")}
+    end
+  end
+
+  @impl true
+  def handle_event("accept_connection_request", _params, socket) do
+    connection = socket.assigns.connection
+
+    case Connections.accept_connection_request(connection) do
+      {:ok, updated_connection} ->
+        {:noreply,
+         socket
+         |> put_flash(:info, "Connection accepted")
+         |> assign(:connection_status, :connected)
+         |> assign(:connection, updated_connection)}
+
+      {:error, _changeset} ->
+        {:noreply, put_flash(socket, :error, "Failed to accept connection")}
+    end
+  end
+
+  @impl true
+  def handle_event("reject_connection_request", _params, socket) do
+    connection = socket.assigns.connection
+
+    case Connections.reject_connection_request(connection) do
+      {:ok, _} ->
+        {:noreply,
+         socket
+         |> put_flash(:info, "Connection rejected")
+         |> assign(:connection_status, nil)
+         |> assign(:connection, nil)}
+
+      {:error, _changeset} ->
+        {:noreply, put_flash(socket, :error, "Failed to reject connection")}
+    end
+  end
+
+  @impl true
+  def handle_event("remove_connection", _params, socket) do
+    connection = socket.assigns.connection
+
+    case Connections.remove_connection(connection) do
+      {:ok, _} ->
+        {:noreply,
+         socket
+         |> put_flash(:info, "Connection removed")
+         |> assign(:connection_status, nil)
+         |> assign(:connection, nil)}
+
+      {:error, _changeset} ->
+        {:noreply, put_flash(socket, :error, "Failed to remove connection")}
+    end
+  end
+
+  @impl true
+  def render(assigns) do
+    ~H"""
+    <Layouts.app flash={@flash} current_scope={@current_scope}>
+      <div class="max-w-4xl mx-auto px-4 py-8">
+        <%!-- Profile Header ---%>
+        <div class="bg-white rounded-lg shadow-md p-8 mb-6">
+          <div class="flex items-start gap-6">
+            <div class="w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center flex-shrink-0">
+              <%= if @user.profile_photo do %>
+                <img
+                  src={"/uploads/#{@user.profile_photo}"}
+                  alt={@user.first_name}
+                  class="w-24 h-24 rounded-full object-cover"
+                />
+              <% else %>
+                <span class="text-4xl font-bold text-gray-600">
+                  {String.first(@user.first_name)}
+                </span>
+              <% end %>
+            </div>
+
+            <div class="flex-1">
+              <h1 class="text-3xl font-bold mb-2">
+                {@user.first_name} {@user.last_name}
+              </h1>
+              <p class="text-gray-600 mb-4">
+                <.icon name="hero-map-pin" class="w-4 h-4 inline" /> {@user.location}
+              </p>
+
+              <%!-- Connection Action Buttons ---%>
+              <div class="flex gap-3">
+                <%= cond do %>
+                  <% @connection_status == :connected -> %>
+                    <button
+                      phx-click="remove_connection"
+                      class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+                    >
+                      Remove Connection
+                    </button>
+                  <% @connection_status == :pending_sent -> %>
+                    <button
+                      phx-click="cancel_connection_request"
+                      class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+                    >
+                      Cancel Request
+                    </button>
+                  <% @connection_status == :pending_received -> %>
+                    <button
+                      phx-click="accept_connection_request"
+                      class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                    >
+                      Accept Request
+                    </button>
+                    <button
+                      phx-click="reject_connection_request"
+                      class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+                    >
+                      Reject
+                    </button>
+                  <% true -> %>
+                    <button
+                      phx-click="send_connection_request"
+                      class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                    >
+                      Connect
+                    </button>
+                <% end %>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <%!-- Content Sections ---%>
+        <%= cond do %>
+          <%!-- Show full profile if connected ---%>
+          <% @connection_status == :connected -> %>
+            <%!-- Interests Section ---%>
+            <%= if length(@interests) > 0 do %>
+              <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                <h2 class="text-xl font-semibold mb-4">Interests</h2>
+                <div class="flex flex-wrap gap-2">
+                  <%= for user_interest <- @interests do %>
+                    <span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
+                      {user_interest.interest.name}
+                    </span>
+                  <% end %>
+                </div>
+              </div>
+            <% end %>
+            <%!-- Bio Section ---%>
+            <%= if @profile && @profile.bio do %>
+              <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                <h2 class="text-xl font-semibold mb-4">About</h2>
+                <p class="text-gray-700 whitespace-pre-wrap">{@profile.bio}</p>
+              </div>
+            <% end %>
+            <%!-- Social Links Section ---%>
+            <%= if @profile && has_social_links?(@profile) do %>
+              <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-xl font-semibold mb-4">Social Links</h2>
+                <div class="space-y-2">
+                  <%= if @profile.instagram do %>
+                    <p>
+                      <.icon name="hero-camera" class="w-5 h-5 inline" /> Instagram:
+                      <a
+                        href={"https://instagram.com/#{@profile.instagram}"}
+                        target="_blank"
+                        class="text-blue-600 hover:underline"
+                      >
+                        @{@profile.instagram}
+                      </a>
+                    </p>
+                  <% end %>
+                  <%= if @profile.facebook do %>
+                    <p>
+                      <.icon name="hero-user-circle" class="w-5 h-5 inline" /> Facebook:
+                      <a
+                        href={"https://facebook.com/#{@profile.facebook}"}
+                        target="_blank"
+                        class="text-blue-600 hover:underline"
+                      >
+                        {@profile.facebook}
+                      </a>
+                    </p>
+                  <% end %>
+                  <%= if @profile.twitter do %>
+                    <p>
+                      <.icon name="hero-at-symbol" class="w-5 h-5 inline" /> Twitter:
+                      <a
+                        href={"https://twitter.com/#{@profile.twitter}"}
+                        target="_blank"
+                        class="text-blue-600 hover:underline"
+                      >
+                        @{@profile.twitter}
+                      </a>
+                    </p>
+                  <% end %>
+                  <%= if @profile.tiktok do %>
+                    <p>
+                      <.icon name="hero-musical-note" class="w-5 h-5 inline" /> TikTok:
+                      <a
+                        href={"https://tiktok.com/@#{@profile.tiktok}"}
+                        target="_blank"
+                        class="text-blue-600 hover:underline"
+                      >
+                        @{@profile.tiktok}
+                      </a>
+                    </p>
+                  <% end %>
+                  <%= if @profile.youtube do %>
+                    <p>
+                      <.icon name="hero-play" class="w-5 h-5 inline" /> YouTube:
+                      <a
+                        href={"https://youtube.com/@#{@profile.youtube}"}
+                        target="_blank"
+                        class="text-blue-600 hover:underline"
+                      >
+                        @{@profile.youtube}
+                      </a>
+                    </p>
+                  <% end %>
+                </div>
+              </div>
+            <% end %>
+            <%!-- Show limited profile if not connected ---%>
+          <% true -> %>
+            <div class="bg-gray-50 rounded-lg p-8 text-center">
+              <.icon name="hero-lock-closed" class="w-16 h-16 mx-auto text-gray-400 mb-4" />
+              <h3 class="text-xl font-semibold text-gray-700 mb-2">
+                The user has hidden the content
+              </h3>
+              <p class="text-gray-600">
+                Connect with {@user.first_name} to view their full profile
+              </p>
+            </div>
+        <% end %>
+      </div>
+    </Layouts.app>
+    """
+  end
+
+  defp has_social_links?(profile) do
+    profile.instagram || profile.facebook || profile.twitter || profile.tiktok ||
+      profile.youtube
+  end
+end

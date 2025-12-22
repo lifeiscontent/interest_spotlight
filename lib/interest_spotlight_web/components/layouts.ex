@@ -59,7 +59,7 @@ defmodule InterestSpotlightWeb.Layouts do
               </.link>
             </li>
             <li>
-              <.link href="#" class="flex items-center gap-3">
+              <.link navigate={~p"/connections"} class="flex items-center gap-3">
                 <.icon name="hero-user-group" class="size-5" />
                 <span>Connections</span>
               </.link>
@@ -149,7 +149,7 @@ defmodule InterestSpotlightWeb.Layouts do
           <div class="flex items-center justify-around h-16">
             <.bottom_nav_item href={~p"/dashboard"} icon="hero-home" label="Home" />
             <.bottom_nav_item href="#" icon="hero-calendar" label="Calendar" />
-            <.bottom_nav_item href="#" icon="hero-user-group" label="Connections" badge={4} />
+            <.bottom_nav_item href={~p"/connections"} icon="hero-user-group" label="Connections" />
             <.bottom_nav_item href={~p"/profile"} icon="hero-user-circle" label="Profile" />
           </div>
         </nav>

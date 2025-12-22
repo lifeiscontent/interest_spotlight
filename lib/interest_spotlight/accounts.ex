@@ -60,6 +60,18 @@ defmodule InterestSpotlight.Accounts do
   """
   def get_user!(id), do: Repo.get!(User, id)
 
+  @doc """
+  Lists all non-admin users excluding the given user.
+  """
+  def list_users_except(user_id) do
+    from(u in User,
+      where: u.id != ^user_id,
+      where: u.user_type != "admin",
+      order_by: [asc: u.first_name, asc: u.last_name]
+    )
+    |> Repo.all()
+  end
+
   ## User registration
 
   @doc """

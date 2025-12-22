@@ -17,6 +17,12 @@ defmodule InterestSpotlight.Accounts.User do
     has_one :profile, InterestSpotlight.Profiles.Profile
     many_to_many :interests, InterestSpotlight.Interests.Interest, join_through: "user_interests"
 
+    has_many :sent_connection_requests, InterestSpotlight.Connections.Connection,
+      foreign_key: :requester_id
+
+    has_many :received_connection_requests, InterestSpotlight.Connections.Connection,
+      foreign_key: :user_id
+
     timestamps(type: :utc_datetime)
   end
 
