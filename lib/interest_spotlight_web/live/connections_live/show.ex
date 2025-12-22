@@ -214,8 +214,8 @@ defmodule InterestSpotlightWeb.ConnectionsLive.Show do
                   class="w-24 h-24 rounded-full object-cover"
                 />
               <% else %>
-                <div class="w-24 h-24 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                  <span class="text-3xl font-bold text-white">
+                <div class="w-24 h-24 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full">
+                  <span class="text-3xl font-bold text-white flex items-center justify-center w-full h-full">
                     {get_user_initials(@user)}
                   </span>
                 </div>

@@ -301,8 +301,8 @@ defmodule InterestSpotlightWeb.ConnectionsLive.Index do
                           </div>
                         <% else %>
                           <div class="avatar placeholder">
-                            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-secondary text-primary-content">
-                              <span class="text-sm font-bold">
+                            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-secondary">
+                              <span class="text-sm font-bold text-primary-content flex items-center justify-center w-full h-full">
                                 {get_user_initials(user)}
                               </span>
                             </div>
@@ -375,8 +375,8 @@ defmodule InterestSpotlightWeb.ConnectionsLive.Index do
                             </div>
                           <% else %>
                             <div class="avatar placeholder">
-                              <div class="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-secondary text-primary-content">
-                                <span class="text-sm font-bold">
+                              <div class="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-secondary">
+                                <span class="text-sm font-bold text-primary-content flex items-center justify-center w-full h-full">
                                   {get_user_initials(request.requester)}
                                 </span>
                               </div>
@@ -449,8 +449,8 @@ defmodule InterestSpotlightWeb.ConnectionsLive.Index do
                             </div>
                           <% else %>
                             <div class="avatar placeholder">
-                              <div class="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-secondary text-primary-content">
-                                <span class="text-sm font-bold">
+                              <div class="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-secondary">
+                                <span class="text-sm font-bold text-primary-content flex items-center justify-center w-full h-full">
                                   {get_user_initials(request.user)}
                                 </span>
                               </div>
@@ -511,8 +511,8 @@ defmodule InterestSpotlightWeb.ConnectionsLive.Index do
                             </div>
                           <% else %>
                             <div class="avatar placeholder">
-                              <div class="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-secondary text-primary-content">
-                                <span class="text-sm font-bold">
+                              <div class="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-secondary">
+                                <span class="text-sm font-bold text-primary-content flex items-center justify-center w-full h-full">
                                   {get_user_initials(other_user)}
                                 </span>
                               </div>
