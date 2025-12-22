@@ -14,7 +14,7 @@ defmodule InterestSpotlightWeb.ConnectionsLive.IndexTest do
       {:ok, _lv, html} = live(conn, ~p"/connections")
 
       assert html =~ "Connections"
-      assert html =~ "All Users"
+      assert html =~ "My Connections"
       assert html =~ "Connection Requests"
     end
 
@@ -38,82 +38,62 @@ defmodule InterestSpotlightWeb.ConnectionsLive.IndexTest do
     end
   end
 
-  describe "All Users tab" do
+  describe "Connections tab (all users)" do
     setup :register_and_log_in_onboarded_user
 
     test "displays all users except current user", %{conn: conn} do
       user2 = onboarded_user_fixture()
       user3 = onboarded_user_fixture()
 
-      {:ok, lv, _html} = live(conn, ~p"/connections")
+      {:ok, _lv, html} = live(conn, ~p"/connections")
 
-      result =
-        lv
-        |> element("a[phx-click='switch_tab'][phx-value-tab='all_users']")
-        |> render_click()
-
-      assert result =~ user2.first_name
-      assert result =~ user2.last_name
-      assert result =~ user3.first_name
-      assert result =~ user3.last_name
+      # All users tab is default
+      assert html =~ user2.first_name
+      assert html =~ user2.last_name
+      assert html =~ user3.first_name
+      assert html =~ user3.last_name
     end
 
     test "shows connect button for users not connected", %{conn: conn} do
       other_user = onboarded_user_fixture()
 
-      {:ok, lv, _html} = live(conn, ~p"/connections")
+      {:ok, _lv, html} = live(conn, ~p"/connections")
 
-      result =
-        lv
-        |> element("a[phx-click='switch_tab'][phx-value-tab='all_users']")
-        |> render_click()
-
-      assert result =~ "Connect"
-      assert result =~ "phx-click=\"send_request\""
-      assert result =~ "phx-value-user_id=\"#{other_user.id}\""
+      # All users tab is default
+      assert html =~ "Connect"
+      assert html =~ "phx-click=\"send_request\""
+      assert html =~ "phx-value-user_id=\"#{other_user.id}\""
     end
 
     test "shows 'Request Sent' for pending sent requests", %{conn: conn, user: user} do
       other_user = onboarded_user_fixture()
       connection_request_fixture(user.id, other_user.id)
 
-      {:ok, lv, _html} = live(conn, ~p"/connections")
+      {:ok, _lv, html} = live(conn, ~p"/connections")
 
-      result =
-        lv
-        |> element("a[phx-click='switch_tab'][phx-value-tab='all_users']")
-        |> render_click()
-
-      assert result =~ "Request Sent"
+      # All users tab is default
+      assert html =~ "Request Sent"
     end
 
     test "shows 'View Request' for pending received requests", %{conn: conn, user: user} do
       other_user = onboarded_user_fixture()
       connection_request_fixture(other_user.id, user.id)
 
-      {:ok, lv, _html} = live(conn, ~p"/connections")
+      {:ok, _lv, html} = live(conn, ~p"/connections")
 
-      result =
-        lv
-        |> element("a[phx-click='switch_tab'][phx-value-tab='all_users']")
-        |> render_click()
-
-      assert result =~ "View Request"
+      # All users tab is default
+      assert html =~ "View Request"
     end
 
     test "shows clickable profile links for connected users", %{conn: conn, user: user} do
       other_user = onboarded_user_fixture()
       accepted_connection_fixture(user.id, other_user.id)
 
-      {:ok, lv, _html} = live(conn, ~p"/connections")
+      {:ok, _lv, html} = live(conn, ~p"/connections")
 
-      result =
-        lv
-        |> element("a[phx-click='switch_tab'][phx-value-tab='all_users']")
-        |> render_click()
-
-      assert result =~ "/connections/#{other_user.id}"
-      assert result =~ other_user.first_name
+      # All users tab is default
+      assert html =~ "/connections/#{other_user.id}"
+      assert html =~ other_user.first_name
     end
 
     test "sends connection request when connect button clicked", %{conn: conn, user: user} do
@@ -121,10 +101,7 @@ defmodule InterestSpotlightWeb.ConnectionsLive.IndexTest do
 
       {:ok, lv, _html} = live(conn, ~p"/connections")
 
-      lv
-      |> element("a[phx-click='switch_tab'][phx-value-tab='all_users']")
-      |> render_click()
-
+      # All users tab is default, no need to switch
       lv
       |> element("button[phx-click='send_request'][phx-value-user_id='#{other_user.id}']")
       |> render_click()
@@ -138,10 +115,7 @@ defmodule InterestSpotlightWeb.ConnectionsLive.IndexTest do
 
       {:ok, lv, _html} = live(conn, ~p"/connections")
 
-      lv
-      |> element("a[phx-click='switch_tab'][phx-value-tab='all_users']")
-      |> render_click()
-
+      # All users tab is default, no need to switch
       result =
         lv
         |> element("button[phx-click='send_request'][phx-value-user_id='#{other_user.id}']")
@@ -157,7 +131,7 @@ defmodule InterestSpotlightWeb.ConnectionsLive.IndexTest do
     test "switches to requests tab when clicked", %{conn: conn} do
       {:ok, lv, html} = live(conn, ~p"/connections")
 
-      # Initially on my_connections tab
+      # Initially on all_users tab (Connections)
       assert html =~ "Connections"
 
       result =
@@ -324,11 +298,15 @@ defmodule InterestSpotlightWeb.ConnectionsLive.IndexTest do
   describe "My Connections tab" do
     setup :register_and_log_in_onboarded_user
 
-    test "displays my connections tab by default", %{conn: conn} do
-      {:ok, _lv, html} = live(conn, ~p"/connections")
+    test "switches to my connections tab when clicked", %{conn: conn} do
+      {:ok, lv, _html} = live(conn, ~p"/connections")
 
-      # Should be on my_connections tab by default
-      assert html =~ "Connections"
+      result =
+        lv
+        |> element("a[phx-click='switch_tab'][phx-value-tab='my_connections']")
+        |> render_click()
+
+      assert result =~ "My Connections"
     end
 
     test "displays all accepted connections", %{conn: conn, user: user} do
@@ -338,36 +316,48 @@ defmodule InterestSpotlightWeb.ConnectionsLive.IndexTest do
       accepted_connection_fixture(user.id, friend1.id)
       accepted_connection_fixture(friend2.id, user.id)
 
-      {:ok, _lv, html} = live(conn, ~p"/connections")
+      {:ok, lv, _html} = live(conn, ~p"/connections")
 
-      # My connections tab is default, so no need to switch
-      assert html =~ friend1.first_name
-      assert html =~ friend1.last_name
-      assert html =~ friend2.first_name
-      assert html =~ friend2.last_name
+      result =
+        lv
+        |> element("a[phx-click='switch_tab'][phx-value-tab='my_connections']")
+        |> render_click()
+
+      assert result =~ friend1.first_name
+      assert result =~ friend1.last_name
+      assert result =~ friend2.first_name
+      assert result =~ friend2.last_name
     end
 
     test "shows remove button for each connection", %{conn: conn, user: user} do
       friend = onboarded_user_fixture()
       accepted_connection_fixture(user.id, friend.id)
 
-      {:ok, _lv, html} = live(conn, ~p"/connections")
+      {:ok, lv, _html} = live(conn, ~p"/connections")
 
-      # My connections tab is default
-      assert html =~ "phx-click=\"remove_connection\""
-      assert html =~ "hero-x-mark"
+      result =
+        lv
+        |> element("a[phx-click='switch_tab'][phx-value-tab='my_connections']")
+        |> render_click()
+
+      assert result =~ "phx-click=\"remove_connection\""
+      assert result =~ "hero-x-mark"
     end
 
     test "shows clickable profile links for each connection", %{conn: conn, user: user} do
       friend = onboarded_user_fixture()
       accepted_connection_fixture(user.id, friend.id)
 
-      {:ok, _lv, html} = live(conn, ~p"/connections")
+      {:ok, lv, _html} = live(conn, ~p"/connections")
 
-      # My connections tab is default
-      assert html =~ "/connections/#{friend.id}"
-      assert html =~ friend.first_name
-      assert html =~ "hover:underline"
+      result =
+        lv
+        |> element("a[phx-click='switch_tab'][phx-value-tab='my_connections']")
+        |> render_click()
+
+      assert result =~ "/connections/#{friend.id}"
+      assert result =~ friend.first_name
+      assert result =~ "hover:underline"
     end
 
     test "removes connection when remove button clicked", %{conn: conn, user: user} do
@@ -376,7 +366,10 @@ defmodule InterestSpotlightWeb.ConnectionsLive.IndexTest do
 
       {:ok, lv, _html} = live(conn, ~p"/connections")
 
-      # My connections tab is default, no need to switch
+      lv
+      |> element("a[phx-click='switch_tab'][phx-value-tab='my_connections']")
+      |> render_click()
+
       lv
       |> element("button[phx-click='remove_connection'][phx-value-id='#{connection.id}']")
       |> render_click()
@@ -391,7 +384,10 @@ defmodule InterestSpotlightWeb.ConnectionsLive.IndexTest do
 
       {:ok, lv, _html} = live(conn, ~p"/connections")
 
-      # My connections tab is default, no need to switch
+      lv
+      |> element("a[phx-click='switch_tab'][phx-value-tab='my_connections']")
+      |> render_click()
+
       result =
         lv
         |> element("button[phx-click='remove_connection'][phx-value-id='#{connection.id}']")
@@ -401,23 +397,30 @@ defmodule InterestSpotlightWeb.ConnectionsLive.IndexTest do
     end
 
     test "shows empty state when no connections", %{conn: conn} do
-      {:ok, _lv, html} = live(conn, ~p"/connections")
+      {:ok, lv, _html} = live(conn, ~p"/connections")
 
-      # My connections tab is default
-      assert html =~ "No connections yet"
-      assert html =~ "Find People to Connect"
+      result =
+        lv
+        |> element("a[phx-click='switch_tab'][phx-value-tab='my_connections']")
+        |> render_click()
+
+      assert result =~ "No connections yet"
+      assert result =~ "Find People to Connect"
     end
 
     test "empty state has button to switch to all users tab", %{conn: conn} do
       {:ok, lv, _html} = live(conn, ~p"/connections")
 
-      # My connections tab is default, just click the button to switch
+      lv
+      |> element("a[phx-click='switch_tab'][phx-value-tab='my_connections']")
+      |> render_click()
+
       result =
         lv
         |> element("button[phx-click='switch_tab'][phx-value-tab='all_users']")
         |> render_click()
 
-      assert result =~ "All Users"
+      assert result =~ "Connections"
     end
   end
 
@@ -455,7 +458,11 @@ defmodule InterestSpotlightWeb.ConnectionsLive.IndexTest do
       # Wait for PubSub message
       :timer.sleep(100)
 
-      # Connection should now show in My Connections (which is the default tab)
+      # Switch to My Connections to see the connection
+      lv
+      |> element("a[phx-click='switch_tab'][phx-value-tab='my_connections']")
+      |> render_click()
+
       html = render(lv)
       assert html =~ other_user.first_name
     end
@@ -472,7 +479,11 @@ defmodule InterestSpotlightWeb.ConnectionsLive.IndexTest do
       # Wait for PubSub message
       :timer.sleep(100)
 
-      # Connection should no longer appear (My Connections is the default tab)
+      # Switch to My Connections tab and verify connection is gone
+      lv
+      |> element("a[phx-click='switch_tab'][phx-value-tab='my_connections']")
+      |> render_click()
+
       html = render(lv)
       refute html =~ other_user.first_name
     end
@@ -484,16 +495,11 @@ defmodule InterestSpotlightWeb.ConnectionsLive.IndexTest do
     test "shows first and last name initials when both present", %{conn: conn} do
       _other_user = onboarded_user_fixture()
 
-      {:ok, lv, _html} = live(conn, ~p"/connections")
+      {:ok, _lv, html} = live(conn, ~p"/connections")
 
-      # Switch to all users tab to see other users
-      result =
-        lv
-        |> element("a[phx-click='switch_tab'][phx-value-tab='all_users']")
-        |> render_click()
-
+      # All users tab is default, should see other users
       # Should show "TU" for "Test User"
-      assert result =~ "TU"
+      assert html =~ "TU"
     end
   end
 end

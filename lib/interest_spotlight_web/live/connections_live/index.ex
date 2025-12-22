@@ -36,7 +36,7 @@ defmodule InterestSpotlightWeb.ConnectionsLive.Index do
     {:ok,
      socket
      |> assign(:page_title, "Connections")
-     |> assign(:current_tab, "my_connections")
+     |> assign(:current_tab, "all_users")
      |> assign(:all_users, all_users)
      |> assign(:connections, connections)
      |> assign(:received_requests, received_requests)
@@ -260,11 +260,11 @@ defmodule InterestSpotlightWeb.ConnectionsLive.Index do
         <div role="tablist" class="tabs tabs-bordered mb-6">
           <a
             role="tab"
-            class={["tab", @current_tab == "my_connections" && "tab-active"]}
+            class={["tab", @current_tab == "all_users" && "tab-active"]}
             phx-click="switch_tab"
-            phx-value-tab="my_connections"
+            phx-value-tab="all_users"
           >
-            Connections <span class="ml-2 badge badge-ghost badge-sm">{length(@connections)}</span>
+            Connections
           </a>
           <a
             role="tab"
@@ -279,11 +279,11 @@ defmodule InterestSpotlightWeb.ConnectionsLive.Index do
           </a>
           <a
             role="tab"
-            class={["tab", @current_tab == "all_users" && "tab-active"]}
+            class={["tab", @current_tab == "my_connections" && "tab-active"]}
             phx-click="switch_tab"
-            phx-value-tab="all_users"
+            phx-value-tab="my_connections"
           >
-            All Users
+            My Connections <span class="ml-2 badge badge-ghost badge-sm">{length(@connections)}</span>
           </a>
         </div>
 
