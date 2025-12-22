@@ -3,10 +3,17 @@ defmodule InterestSpotlightWeb.ConnectionsLive.Index do
 
   alias InterestSpotlight.Accounts
   alias InterestSpotlight.Connections
+  alias InterestSpotlightWeb.Presence
 
   @impl true
   def mount(_params, _session, socket) do
     current_user = socket.assigns.current_scope.user
+
+    # Subscribe to connection events
+    if connected?(socket) do
+      Connections.subscribe(current_user.id)
+      track_presence(socket, current_user.id)
+    end
 
     all_users = Accounts.list_users_except(current_user.id)
     connections = Connections.list_connections(current_user.id)
@@ -20,6 +27,9 @@ defmodule InterestSpotlightWeb.ConnectionsLive.Index do
         Map.put(acc, user.id, status)
       end)
 
+    # Get initial presence data
+    presence_map = get_presence_map()
+
     {:ok,
      socket
      |> assign(:page_title, "Connections")
@@ -29,7 +39,8 @@ defmodule InterestSpotlightWeb.ConnectionsLive.Index do
      |> assign(:received_requests, received_requests)
      |> assign(:sent_requests, sent_requests)
      |> assign(:connection_status_map, connection_status_map)
-     |> assign(:received_count, length(received_requests))}
+     |> assign(:received_count, length(received_requests))
+     |> assign(:online_users, presence_map)}
   end
 
   @impl true
@@ -136,6 +147,101 @@ defmodule InterestSpotlightWeb.ConnectionsLive.Index do
   end
 
   @impl true
+  def handle_info({:connection_request_sent, connection}, socket) do
+    current_user = socket.assigns.current_scope.user
+
+    # If we're the recipient, update received requests
+    socket =
+      if connection.user_id == current_user.id do
+        received_requests = Connections.list_received_requests(current_user.id)
+
+        socket
+        |> assign(:received_requests, received_requests)
+        |> update(:received_count, &(&1 + 1))
+        |> update(
+          :connection_status_map,
+          &Map.put(&1, connection.requester_id, :pending_received)
+        )
+      else
+        socket
+      end
+
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_info({:connection_accepted, connection}, socket) do
+    current_user = socket.assigns.current_scope.user
+
+    other_user_id =
+      if connection.requester_id == current_user.id,
+        do: connection.user_id,
+        else: connection.requester_id
+
+    {:noreply,
+     socket
+     |> assign(:connections, Connections.list_connections(current_user.id))
+     |> assign(:received_requests, Connections.list_received_requests(current_user.id))
+     |> assign(:sent_requests, Connections.list_sent_requests(current_user.id))
+     |> update(:connection_status_map, &Map.put(&1, other_user_id, :connected))
+     |> assign(:received_count, length(Connections.list_received_requests(current_user.id)))}
+  end
+
+  @impl true
+  def handle_info({:connection_rejected, connection}, socket) do
+    current_user = socket.assigns.current_scope.user
+
+    other_user_id =
+      if connection.requester_id == current_user.id,
+        do: connection.user_id,
+        else: connection.requester_id
+
+    {:noreply,
+     socket
+     |> assign(:received_requests, Connections.list_received_requests(current_user.id))
+     |> assign(:sent_requests, Connections.list_sent_requests(current_user.id))
+     |> update(:connection_status_map, &Map.put(&1, other_user_id, nil))
+     |> assign(:received_count, length(Connections.list_received_requests(current_user.id)))}
+  end
+
+  @impl true
+  def handle_info({:connection_cancelled, connection}, socket) do
+    current_user = socket.assigns.current_scope.user
+
+    other_user_id =
+      if connection.requester_id == current_user.id,
+        do: connection.user_id,
+        else: connection.requester_id
+
+    {:noreply,
+     socket
+     |> assign(:received_requests, Connections.list_received_requests(current_user.id))
+     |> assign(:sent_requests, Connections.list_sent_requests(current_user.id))
+     |> update(:connection_status_map, &Map.put(&1, other_user_id, nil))
+     |> assign(:received_count, length(Connections.list_received_requests(current_user.id)))}
+  end
+
+  @impl true
+  def handle_info({:connection_removed, connection}, socket) do
+    current_user = socket.assigns.current_scope.user
+
+    other_user_id =
+      if connection.requester_id == current_user.id,
+        do: connection.user_id,
+        else: connection.requester_id
+
+    {:noreply,
+     socket
+     |> assign(:connections, Connections.list_connections(current_user.id))
+     |> update(:connection_status_map, &Map.put(&1, other_user_id, nil))}
+  end
+
+  @impl true
+  def handle_info(%{event: "presence_diff"}, socket) do
+    {:noreply, assign(socket, :online_users, get_presence_map())}
+  end
+
+  @impl true
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash} current_scope={@current_scope}>
@@ -182,25 +288,33 @@ defmodule InterestSpotlightWeb.ConnectionsLive.Index do
                 <div class="card bg-base-100 border border-base-300">
                   <div class="card-body p-4">
                     <div class="flex items-center gap-3 mb-3">
-                      <%= if user.profile_photo do %>
-                        <div class="avatar">
-                          <div class="w-12 h-12 rounded-full">
-                            <img
-                              src={"/uploads/#{user.profile_photo}"}
-                              alt={user.first_name}
-                              class="object-cover"
-                            />
+                      <div class="relative">
+                        <%= if user.profile_photo do %>
+                          <div class="avatar">
+                            <div class="w-12 h-12 rounded-full">
+                              <img
+                                src={"/uploads/#{user.profile_photo}"}
+                                alt={user.first_name}
+                                class="object-cover"
+                              />
+                            </div>
                           </div>
-                        </div>
-                      <% else %>
-                        <div class="avatar placeholder">
-                          <div class="w-12 h-12 rounded-full bg-primary text-primary-content">
-                            <span class="text-lg font-semibold">
-                              {String.first(user.first_name || "?")}
-                            </span>
+                        <% else %>
+                          <div class="avatar placeholder">
+                            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-secondary text-primary-content">
+                              <span class="text-sm font-bold">
+                                {get_user_initials(user)}
+                              </span>
+                            </div>
                           </div>
+                        <% end %>
+                        <%!-- Online/Offline indicator ---%>
+                        <div class={[
+                          "absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-base-100",
+                          (user_online?(user.id, @online_users) && "bg-green-500") || "bg-gray-400"
+                        ]}>
                         </div>
-                      <% end %>
+                      </div>
                       <div class="flex-1 min-w-0">
                         <h3 class="font-semibold truncate">
                           {user.first_name} {user.last_name}
@@ -248,25 +362,34 @@ defmodule InterestSpotlightWeb.ConnectionsLive.Index do
                   <div class="card bg-base-100 border border-base-300">
                     <div class="card-body p-4">
                       <div class="flex items-center gap-4">
-                        <%= if request.requester.profile_photo do %>
-                          <div class="avatar">
-                            <div class="w-12 h-12 rounded-full">
-                              <img
-                                src={"/uploads/#{request.requester.profile_photo}"}
-                                alt={request.requester.first_name}
-                                class="object-cover"
-                              />
+                        <div class="relative">
+                          <%= if request.requester.profile_photo do %>
+                            <div class="avatar">
+                              <div class="w-12 h-12 rounded-full">
+                                <img
+                                  src={"/uploads/#{request.requester.profile_photo}"}
+                                  alt={request.requester.first_name}
+                                  class="object-cover"
+                                />
+                              </div>
                             </div>
-                          </div>
-                        <% else %>
-                          <div class="avatar placeholder">
-                            <div class="w-12 h-12 rounded-full bg-primary text-primary-content">
-                              <span class="text-lg font-semibold">
-                                {String.first(request.requester.first_name || "?")}
-                              </span>
+                          <% else %>
+                            <div class="avatar placeholder">
+                              <div class="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-secondary text-primary-content">
+                                <span class="text-sm font-bold">
+                                  {get_user_initials(request.requester)}
+                                </span>
+                              </div>
                             </div>
+                          <% end %>
+                          <%!-- Online/Offline indicator ---%>
+                          <div class={[
+                            "absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-base-100",
+                            (user_online?(request.requester.id, @online_users) && "bg-green-500") ||
+                              "bg-gray-400"
+                          ]}>
                           </div>
-                        <% end %>
+                        </div>
                         <div class="flex-1">
                           <p class="font-semibold">
                             <.link
@@ -313,25 +436,34 @@ defmodule InterestSpotlightWeb.ConnectionsLive.Index do
                   <div class="card bg-base-100 border border-base-300">
                     <div class="card-body p-4">
                       <div class="flex items-center gap-4">
-                        <%= if request.user.profile_photo do %>
-                          <div class="avatar">
-                            <div class="w-12 h-12 rounded-full">
-                              <img
-                                src={"/uploads/#{request.user.profile_photo}"}
-                                alt={request.user.first_name}
-                                class="object-cover"
-                              />
+                        <div class="relative">
+                          <%= if request.user.profile_photo do %>
+                            <div class="avatar">
+                              <div class="w-12 h-12 rounded-full">
+                                <img
+                                  src={"/uploads/#{request.user.profile_photo}"}
+                                  alt={request.user.first_name}
+                                  class="object-cover"
+                                />
+                              </div>
                             </div>
-                          </div>
-                        <% else %>
-                          <div class="avatar placeholder">
-                            <div class="w-12 h-12 rounded-full bg-primary text-primary-content">
-                              <span class="text-lg font-semibold">
-                                {String.first(request.user.first_name || "?")}
-                              </span>
+                          <% else %>
+                            <div class="avatar placeholder">
+                              <div class="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-secondary text-primary-content">
+                                <span class="text-sm font-bold">
+                                  {get_user_initials(request.user)}
+                                </span>
+                              </div>
                             </div>
+                          <% end %>
+                          <%!-- Online/Offline indicator ---%>
+                          <div class={[
+                            "absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-base-100",
+                            (user_online?(request.user.id, @online_users) && "bg-green-500") ||
+                              "bg-gray-400"
+                          ]}>
                           </div>
-                        <% end %>
+                        </div>
                         <div class="flex-1">
                           <p class="font-semibold">
                             <.link
@@ -366,25 +498,34 @@ defmodule InterestSpotlightWeb.ConnectionsLive.Index do
                   <div class="card bg-base-100 border border-base-300">
                     <div class="card-body p-4">
                       <div class="flex items-center gap-3 mb-3">
-                        <%= if other_user.profile_photo do %>
-                          <div class="avatar">
-                            <div class="w-12 h-12 rounded-full">
-                              <img
-                                src={"/uploads/#{other_user.profile_photo}"}
-                                alt={other_user.first_name}
-                                class="object-cover"
-                              />
+                        <div class="relative">
+                          <%= if other_user.profile_photo do %>
+                            <div class="avatar">
+                              <div class="w-12 h-12 rounded-full">
+                                <img
+                                  src={"/uploads/#{other_user.profile_photo}"}
+                                  alt={other_user.first_name}
+                                  class="object-cover"
+                                />
+                              </div>
                             </div>
-                          </div>
-                        <% else %>
-                          <div class="avatar placeholder">
-                            <div class="w-12 h-12 rounded-full bg-primary text-primary-content">
-                              <span class="text-lg font-semibold">
-                                {String.first(other_user.first_name || "?")}
-                              </span>
+                          <% else %>
+                            <div class="avatar placeholder">
+                              <div class="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-secondary text-primary-content">
+                                <span class="text-sm font-bold">
+                                  {get_user_initials(other_user)}
+                                </span>
+                              </div>
                             </div>
+                          <% end %>
+                          <%!-- Online/Offline indicator ---%>
+                          <div class={[
+                            "absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-base-100",
+                            (user_online?(other_user.id, @online_users) && "bg-green-500") ||
+                              "bg-gray-400"
+                          ]}>
                           </div>
-                        <% end %>
+                        </div>
                         <div class="flex-1 min-w-0">
                           <h3 class="font-semibold truncate">
                             {other_user.first_name} {other_user.last_name}
@@ -444,6 +585,46 @@ defmodule InterestSpotlightWeb.ConnectionsLive.Index do
       days_ago == 1 -> "Yesterday"
       days_ago < 7 -> "#{days_ago} days ago"
       true -> Date.to_string(date)
+    end
+  end
+
+  defp track_presence(_socket, user_id) do
+    try do
+      Presence.track(self(), "online_users", user_id, %{
+        online_at: System.system_time(:second)
+      })
+    rescue
+      ArgumentError -> :ok
+    end
+  end
+
+  defp get_presence_map do
+    try do
+      Presence.list("online_users")
+      |> Enum.map(fn {user_id, _} -> String.to_integer(user_id) end)
+      |> MapSet.new()
+    rescue
+      ArgumentError -> MapSet.new()
+    end
+  end
+
+  defp user_online?(user_id, online_users) do
+    MapSet.member?(online_users, user_id)
+  end
+
+  defp get_user_initials(user) do
+    cond do
+      user.first_name && user.last_name ->
+        String.upcase("#{String.first(user.first_name)}#{String.first(user.last_name)}")
+
+      user.first_name ->
+        String.upcase(String.slice(user.first_name, 0..1))
+
+      user.email ->
+        String.upcase(String.first(user.email))
+
+      true ->
+        "?"
     end
   end
 end

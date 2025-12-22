@@ -5,6 +5,7 @@ defmodule InterestSpotlightWeb.ConnectionsLive.Show do
   alias InterestSpotlight.Connections
   alias InterestSpotlight.Interests
   alias InterestSpotlight.Profiles
+  alias InterestSpotlightWeb.Presence
 
   @impl true
   def mount(%{"id" => user_id}, _session, socket) do
@@ -17,11 +18,19 @@ defmodule InterestSpotlightWeb.ConnectionsLive.Show do
        |> put_flash(:error, "Cannot view your own profile here")
        |> push_navigate(to: ~p"/profile")}
     else
+      # Subscribe to connection events
+      if connected?(socket) do
+        Connections.subscribe(current_user.id)
+      end
+
       user = Accounts.get_user!(user_id)
       profile = Profiles.get_profile_by_user_id(user.id)
       interests = Interests.list_user_interests(user.id)
       connection_status = Connections.connection_status(current_user.id, user.id)
       connection = Connections.get_connection_between(current_user.id, user.id)
+
+      # Get presence data
+      presence_map = get_presence_map()
 
       {:ok,
        socket
@@ -30,7 +39,8 @@ defmodule InterestSpotlightWeb.ConnectionsLive.Show do
        |> assign(:profile, profile)
        |> assign(:interests, interests)
        |> assign(:connection_status, connection_status)
-       |> assign(:connection, connection)}
+       |> assign(:connection, connection)
+       |> assign(:online_users, presence_map)}
     end
   end
 
@@ -121,6 +131,74 @@ defmodule InterestSpotlightWeb.ConnectionsLive.Show do
   end
 
   @impl true
+  def handle_info({:connection_request_sent, connection}, socket) do
+    current_user = socket.assigns.current_scope.user
+    user = socket.assigns.user
+
+    # Update if this affects the current view
+    if connection.requester_id == user.id && connection.user_id == current_user.id do
+      {:noreply,
+       socket
+       |> assign(:connection_status, :pending_received)
+       |> assign(:connection, connection)}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  @impl true
+  def handle_info({:connection_accepted, connection}, socket) do
+    current_user = socket.assigns.current_scope.user
+    user = socket.assigns.user
+
+    # Update if this affects the current view
+    if (connection.requester_id == current_user.id && connection.user_id == user.id) ||
+         (connection.requester_id == user.id && connection.user_id == current_user.id) do
+      # Reload interests since they're now visible
+      interests = Interests.list_user_interests(user.id)
+      profile = Profiles.get_profile_by_user_id(user.id)
+
+      {:noreply,
+       socket
+       |> assign(:connection_status, :connected)
+       |> assign(:connection, connection)
+       |> assign(:interests, interests)
+       |> assign(:profile, profile)}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  @impl true
+  def handle_info({:connection_rejected, _connection}, socket) do
+    {:noreply,
+     socket
+     |> assign(:connection_status, nil)
+     |> assign(:connection, nil)}
+  end
+
+  @impl true
+  def handle_info({:connection_cancelled, _connection}, socket) do
+    {:noreply,
+     socket
+     |> assign(:connection_status, nil)
+     |> assign(:connection, nil)}
+  end
+
+  @impl true
+  def handle_info({:connection_removed, _connection}, socket) do
+    {:noreply,
+     socket
+     |> assign(:connection_status, nil)
+     |> assign(:connection, nil)}
+  end
+
+  @impl true
+  def handle_info(%{event: "presence_diff"}, socket) do
+    {:noreply, assign(socket, :online_users, get_presence_map())}
+  end
+
+  @impl true
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash} current_scope={@current_scope}>
@@ -128,7 +206,7 @@ defmodule InterestSpotlightWeb.ConnectionsLive.Show do
         <%!-- Profile Header ---%>
         <div class="bg-white rounded-lg shadow-md p-8 mb-6">
           <div class="flex items-start gap-6">
-            <div class="w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center flex-shrink-0">
+            <div class="relative flex-shrink-0">
               <%= if @user.profile_photo do %>
                 <img
                   src={"/uploads/#{@user.profile_photo}"}
@@ -136,10 +214,18 @@ defmodule InterestSpotlightWeb.ConnectionsLive.Show do
                   class="w-24 h-24 rounded-full object-cover"
                 />
               <% else %>
-                <span class="text-4xl font-bold text-gray-600">
-                  {String.first(@user.first_name)}
-                </span>
+                <div class="w-24 h-24 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                  <span class="text-3xl font-bold text-white">
+                    {get_user_initials(@user)}
+                  </span>
+                </div>
               <% end %>
+              <%!-- Online/Offline indicator ---%>
+              <div class={[
+                "absolute bottom-1 right-1 w-5 h-5 rounded-full border-4 border-white",
+                (user_online?(@user.id, @online_users) && "bg-green-500") || "bg-gray-400"
+              ]}>
+              </div>
             </div>
 
             <div class="flex-1">
@@ -305,5 +391,35 @@ defmodule InterestSpotlightWeb.ConnectionsLive.Show do
   defp has_social_links?(profile) do
     profile.instagram || profile.facebook || profile.twitter || profile.tiktok ||
       profile.youtube
+  end
+
+  defp get_presence_map do
+    try do
+      Presence.list("online_users")
+      |> Enum.map(fn {user_id, _} -> String.to_integer(user_id) end)
+      |> MapSet.new()
+    rescue
+      ArgumentError -> MapSet.new()
+    end
+  end
+
+  defp user_online?(user_id, online_users) do
+    MapSet.member?(online_users, user_id)
+  end
+
+  defp get_user_initials(user) do
+    cond do
+      user.first_name && user.last_name ->
+        String.upcase("#{String.first(user.first_name)}#{String.first(user.last_name)}")
+
+      user.first_name ->
+        String.upcase(String.slice(user.first_name, 0..1))
+
+      user.email ->
+        String.upcase(String.first(user.email))
+
+      true ->
+        "?"
+    end
   end
 end

@@ -11,45 +11,93 @@ defmodule InterestSpotlight.Connections do
   Creates a connection request from requester to user.
   """
   def create_connection_request(requester_id, user_id) do
-    %Connection{}
-    |> Connection.changeset(%{
-      requester_id: requester_id,
-      user_id: user_id,
-      status: "pending"
-    })
-    |> Repo.insert()
+    result =
+      %Connection{}
+      |> Connection.changeset(%{
+        requester_id: requester_id,
+        user_id: user_id,
+        status: "pending"
+      })
+      |> Repo.insert()
+
+    case result do
+      {:ok, connection} ->
+        broadcast_connection_event(connection, :connection_request_sent)
+        {:ok, connection}
+
+      error ->
+        error
+    end
   end
 
   @doc """
   Accepts a connection request.
   """
   def accept_connection_request(%Connection{} = connection) do
-    connection
-    |> Connection.changeset(%{status: "accepted"})
-    |> Repo.update()
+    result =
+      connection
+      |> Connection.changeset(%{status: "accepted"})
+      |> Repo.update()
+
+    case result do
+      {:ok, updated_connection} ->
+        broadcast_connection_event(updated_connection, :connection_accepted)
+        {:ok, updated_connection}
+
+      error ->
+        error
+    end
   end
 
   @doc """
   Rejects a connection request.
   """
   def reject_connection_request(%Connection{} = connection) do
-    connection
-    |> Connection.changeset(%{status: "rejected"})
-    |> Repo.update()
+    result =
+      connection
+      |> Connection.changeset(%{status: "rejected"})
+      |> Repo.update()
+
+    case result do
+      {:ok, updated_connection} ->
+        broadcast_connection_event(updated_connection, :connection_rejected)
+        {:ok, updated_connection}
+
+      error ->
+        error
+    end
   end
 
   @doc """
   Cancels a connection request (by the requester).
   """
   def cancel_connection_request(%Connection{} = connection) do
-    Repo.delete(connection)
+    result = Repo.delete(connection)
+
+    case result do
+      {:ok, deleted_connection} ->
+        broadcast_connection_event(deleted_connection, :connection_cancelled)
+        {:ok, deleted_connection}
+
+      error ->
+        error
+    end
   end
 
   @doc """
   Removes a connection (unfriend).
   """
   def remove_connection(%Connection{} = connection) do
-    Repo.delete(connection)
+    result = Repo.delete(connection)
+
+    case result do
+      {:ok, deleted_connection} ->
+        broadcast_connection_event(deleted_connection, :connection_removed)
+        {:ok, deleted_connection}
+
+      error ->
+        error
+    end
   end
 
   @doc """
@@ -180,5 +228,27 @@ defmodule InterestSpotlight.Connections do
     else
       connection.requester
     end
+  end
+
+  @doc """
+  Subscribes to connection events for a user.
+  """
+  def subscribe(user_id) do
+    Phoenix.PubSub.subscribe(InterestSpotlight.PubSub, "connections:#{user_id}")
+  end
+
+  defp broadcast_connection_event(%Connection{} = connection, event) do
+    # Broadcast to both requester and addressee
+    Phoenix.PubSub.broadcast(
+      InterestSpotlight.PubSub,
+      "connections:#{connection.requester_id}",
+      {event, connection}
+    )
+
+    Phoenix.PubSub.broadcast(
+      InterestSpotlight.PubSub,
+      "connections:#{connection.user_id}",
+      {event, connection}
+    )
   end
 end
