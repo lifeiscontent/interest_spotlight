@@ -160,6 +160,19 @@ defmodule InterestSpotlight.Connections do
   end
 
   @doc """
+  Lists connection request history (accepted and rejected) for a user.
+  """
+  def list_request_history(user_id) do
+    from(c in Connection,
+      where: c.status in ["accepted", "rejected"],
+      where: c.user_id == ^user_id,
+      preload: [requester: [:profile]],
+      order_by: [desc: c.updated_at]
+    )
+    |> Repo.all()
+  end
+
+  @doc """
   Counts the number of pending requests received by a user.
   """
   def count_received_requests(user_id) do

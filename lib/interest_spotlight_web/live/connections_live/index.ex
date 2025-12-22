@@ -30,14 +30,18 @@ defmodule InterestSpotlightWeb.ConnectionsLive.Index do
     # Get initial presence data
     presence_map = get_presence_map()
 
+    # Get request history (accepted and rejected)
+    request_history = Connections.list_request_history(current_user.id)
+
     {:ok,
      socket
      |> assign(:page_title, "Connections")
-     |> assign(:current_tab, "all_users")
+     |> assign(:current_tab, "my_connections")
      |> assign(:all_users, all_users)
      |> assign(:connections, connections)
      |> assign(:received_requests, received_requests)
      |> assign(:sent_requests, sent_requests)
+     |> assign(:request_history, request_history)
      |> assign(:connection_status_map, connection_status_map)
      |> assign(:received_count, length(received_requests))
      |> assign(:online_users, presence_map)}
@@ -82,6 +86,7 @@ defmodule InterestSpotlightWeb.ConnectionsLive.Index do
          |> put_flash(:info, "Connection accepted")
          |> assign(:connections, Connections.list_connections(current_user.id))
          |> assign(:received_requests, Connections.list_received_requests(current_user.id))
+         |> assign(:request_history, Connections.list_request_history(current_user.id))
          |> update(:connection_status_map, &Map.put(&1, connection.requester_id, status))
          |> update(:received_count, &(&1 - 1))}
 
@@ -101,6 +106,7 @@ defmodule InterestSpotlightWeb.ConnectionsLive.Index do
          socket
          |> put_flash(:info, "Connection rejected")
          |> assign(:received_requests, Connections.list_received_requests(current_user.id))
+         |> assign(:request_history, Connections.list_request_history(current_user.id))
          |> update(:connection_status_map, &Map.put(&1, connection.requester_id, nil))
          |> update(:received_count, &(&1 - 1))}
 
@@ -183,6 +189,7 @@ defmodule InterestSpotlightWeb.ConnectionsLive.Index do
      |> assign(:connections, Connections.list_connections(current_user.id))
      |> assign(:received_requests, Connections.list_received_requests(current_user.id))
      |> assign(:sent_requests, Connections.list_sent_requests(current_user.id))
+     |> assign(:request_history, Connections.list_request_history(current_user.id))
      |> update(:connection_status_map, &Map.put(&1, other_user_id, :connected))
      |> assign(:received_count, length(Connections.list_received_requests(current_user.id)))}
   end
@@ -200,6 +207,7 @@ defmodule InterestSpotlightWeb.ConnectionsLive.Index do
      socket
      |> assign(:received_requests, Connections.list_received_requests(current_user.id))
      |> assign(:sent_requests, Connections.list_sent_requests(current_user.id))
+     |> assign(:request_history, Connections.list_request_history(current_user.id))
      |> update(:connection_status_map, &Map.put(&1, other_user_id, nil))
      |> assign(:received_count, length(Connections.list_received_requests(current_user.id)))}
   end
@@ -252,11 +260,11 @@ defmodule InterestSpotlightWeb.ConnectionsLive.Index do
         <div role="tablist" class="tabs tabs-bordered mb-6">
           <a
             role="tab"
-            class={["tab", @current_tab == "all_users" && "tab-active"]}
+            class={["tab", @current_tab == "my_connections" && "tab-active"]}
             phx-click="switch_tab"
-            phx-value-tab="all_users"
+            phx-value-tab="my_connections"
           >
-            All Users
+            Connections <span class="ml-2 badge badge-ghost badge-sm">{length(@connections)}</span>
           </a>
           <a
             role="tab"
@@ -271,11 +279,11 @@ defmodule InterestSpotlightWeb.ConnectionsLive.Index do
           </a>
           <a
             role="tab"
-            class={["tab", @current_tab == "my_connections" && "tab-active"]}
+            class={["tab", @current_tab == "all_users" && "tab-active"]}
             phx-click="switch_tab"
-            phx-value-tab="my_connections"
+            phx-value-tab="all_users"
           >
-            My Connections <span class="ml-2 badge badge-ghost badge-sm">{length(@connections)}</span>
+            All Users
           </a>
         </div>
 
@@ -288,9 +296,9 @@ defmodule InterestSpotlightWeb.ConnectionsLive.Index do
                 <div class="card bg-base-100 border border-base-300">
                   <div class="card-body p-4">
                     <div class="flex items-center gap-3 mb-3">
-                      <div class="relative">
+                      <.link navigate={~p"/connections/#{user.id}"} class="relative">
                         <%= if user.profile_photo do %>
-                          <div class="avatar">
+                          <div class="avatar cursor-pointer">
                             <div class="w-12 h-12 rounded-full">
                               <img
                                 src={"/uploads/#{user.profile_photo}"}
@@ -300,7 +308,7 @@ defmodule InterestSpotlightWeb.ConnectionsLive.Index do
                             </div>
                           </div>
                         <% else %>
-                          <div class="avatar placeholder">
+                          <div class="avatar placeholder cursor-pointer">
                             <div class="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-secondary">
                               <span class="text-sm font-bold text-primary-content flex items-center justify-center w-full h-full">
                                 {get_user_initials(user)}
@@ -314,10 +322,12 @@ defmodule InterestSpotlightWeb.ConnectionsLive.Index do
                           (user_online?(user.id, @online_users) && "bg-green-500") || "bg-gray-400"
                         ]}>
                         </div>
-                      </div>
+                      </.link>
                       <div class="flex-1 min-w-0">
                         <h3 class="font-semibold truncate">
-                          {user.first_name} {user.last_name}
+                          <.link navigate={~p"/connections/#{user.id}"} class="hover:underline">
+                            {user.first_name} {user.last_name}
+                          </.link>
                         </h3>
                         <p class="text-sm text-base-content/70 truncate">
                           <.icon name="hero-map-pin" class="w-3 h-3 inline" /> {user.location}
@@ -487,6 +497,70 @@ defmodule InterestSpotlightWeb.ConnectionsLive.Index do
                   </div>
                 <% end %>
               <% end %>
+
+              <%= if length(@request_history) > 0 do %>
+                <h2 class="text-xl font-semibold mb-4 mt-8">Request History</h2>
+                <%= for request <- @request_history do %>
+                  <div class="card bg-base-100 border border-base-300">
+                    <div class="card-body p-4">
+                      <div class="flex items-center gap-4">
+                        <.link navigate={~p"/connections/#{request.requester.id}"} class="relative">
+                          <%= if request.requester.profile_photo do %>
+                            <div class="avatar cursor-pointer">
+                              <div class="w-12 h-12 rounded-full">
+                                <img
+                                  src={"/uploads/#{request.requester.profile_photo}"}
+                                  alt={request.requester.first_name}
+                                  class="object-cover"
+                                />
+                              </div>
+                            </div>
+                          <% else %>
+                            <div class="avatar placeholder cursor-pointer">
+                              <div class="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-secondary">
+                                <span class="text-sm font-bold text-primary-content flex items-center justify-center w-full h-full">
+                                  {get_user_initials(request.requester)}
+                                </span>
+                              </div>
+                            </div>
+                          <% end %>
+                          <%!-- Online/Offline indicator ---%>
+                          <div class={[
+                            "absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-base-100",
+                            (user_online?(request.requester.id, @online_users) && "bg-green-500") ||
+                              "bg-gray-400"
+                          ]}>
+                          </div>
+                        </.link>
+                        <div class="flex-1">
+                          <p class="font-semibold">
+                            <.link
+                              navigate={~p"/connections/#{request.requester.id}"}
+                              class="hover:underline"
+                            >
+                              {request.requester.first_name} {request.requester.last_name}
+                            </.link>
+                          </p>
+                          <p class="text-sm text-base-content/70">
+                            {format_date(request.updated_at)}
+                          </p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                          <%= if request.status == "accepted" do %>
+                            <.icon name="hero-user" class="w-4 h-4 text-base-content/70" />
+                            <span class="text-sm text-base-content/70">
+                              You have accepted the request
+                            </span>
+                          <% else %>
+                            <.icon name="hero-x-mark" class="w-4 h-4 text-red-500" />
+                            <span class="text-sm text-red-500">You have declined the request</span>
+                          <% end %>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                <% end %>
+              <% end %>
             </div>
             <%!-- My Connections Tab ---%>
           <% @current_tab == "my_connections" -> %>
@@ -498,9 +572,9 @@ defmodule InterestSpotlightWeb.ConnectionsLive.Index do
                   <div class="card bg-base-100 border border-base-300">
                     <div class="card-body p-4">
                       <div class="flex items-center gap-3 mb-3">
-                        <div class="relative">
+                        <.link navigate={~p"/connections/#{other_user.id}"} class="relative">
                           <%= if other_user.profile_photo do %>
-                            <div class="avatar">
+                            <div class="avatar cursor-pointer">
                               <div class="w-12 h-12 rounded-full">
                                 <img
                                   src={"/uploads/#{other_user.profile_photo}"}
@@ -510,7 +584,7 @@ defmodule InterestSpotlightWeb.ConnectionsLive.Index do
                               </div>
                             </div>
                           <% else %>
-                            <div class="avatar placeholder">
+                            <div class="avatar placeholder cursor-pointer">
                               <div class="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-secondary">
                                 <span class="text-sm font-bold text-primary-content flex items-center justify-center w-full h-full">
                                   {get_user_initials(other_user)}
@@ -525,10 +599,15 @@ defmodule InterestSpotlightWeb.ConnectionsLive.Index do
                               "bg-gray-400"
                           ]}>
                           </div>
-                        </div>
+                        </.link>
                         <div class="flex-1 min-w-0">
                           <h3 class="font-semibold truncate">
-                            {other_user.first_name} {other_user.last_name}
+                            <.link
+                              navigate={~p"/connections/#{other_user.id}"}
+                              class="hover:underline"
+                            >
+                              {other_user.first_name} {other_user.last_name}
+                            </.link>
                           </h3>
                           <p class="text-sm text-base-content/70 truncate">
                             <.icon name="hero-map-pin" class="w-3 h-3 inline" /> {other_user.location}
@@ -542,15 +621,6 @@ defmodule InterestSpotlightWeb.ConnectionsLive.Index do
                         >
                           <.icon name="hero-x-mark" class="w-5 h-5" />
                         </button>
-                      </div>
-
-                      <div class="card-actions">
-                        <.link
-                          navigate={~p"/connections/#{other_user.id}"}
-                          class="btn btn-sm btn-block"
-                        >
-                          View Profile
-                        </.link>
                       </div>
                     </div>
                   </div>
