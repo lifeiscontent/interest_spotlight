@@ -8,14 +8,14 @@ defmodule InterestSpotlight.Connections do
   alias InterestSpotlight.Connections.Connection
 
   @doc """
-  Creates a connection request from requester to user.
+  Creates a connection request from requester to receiver.
   """
-  def create_connection_request(requester_id, user_id) do
+  def create_connection_request(requester_id, receiver_id) do
     result =
       %Connection{}
       |> Connection.changeset(%{
         requester_id: requester_id,
-        user_id: user_id,
+        receiver_id: receiver_id,
         status: "pending"
       })
       |> Repo.insert()
@@ -106,17 +106,17 @@ defmodule InterestSpotlight.Connections do
   def get_connection!(id) do
     Connection
     |> Repo.get!(id)
-    |> Repo.preload([:requester, :user])
+    |> Repo.preload([:requester, :receiver])
   end
 
   @doc """
   Gets a connection between two users (either direction).
   """
-  def get_connection_between(user_id_1, user_id_2) do
+  def get_connection_between(requester_id, receiver_id) do
     from(c in Connection,
       where:
-        (c.requester_id == ^user_id_1 and c.user_id == ^user_id_2) or
-          (c.requester_id == ^user_id_2 and c.user_id == ^user_id_1)
+        (c.requester_id == ^requester_id and c.receiver_id == ^receiver_id) or
+          (c.requester_id == ^receiver_id and c.receiver_id == ^requester_id)
     )
     |> Repo.one()
   end
@@ -127,8 +127,8 @@ defmodule InterestSpotlight.Connections do
   def list_connections(user_id) do
     from(c in Connection,
       where: c.status == "accepted",
-      where: c.requester_id == ^user_id or c.user_id == ^user_id,
-      preload: [:requester, :user]
+      where: c.requester_id == ^user_id or c.receiver_id == ^user_id,
+      preload: [:requester, :receiver]
     )
     |> Repo.all()
   end
@@ -139,7 +139,7 @@ defmodule InterestSpotlight.Connections do
   def list_received_requests(user_id) do
     from(c in Connection,
       where: c.status == "pending",
-      where: c.user_id == ^user_id,
+      where: c.receiver_id == ^user_id,
       preload: [requester: [:profile]],
       order_by: [desc: c.inserted_at]
     )
@@ -153,7 +153,7 @@ defmodule InterestSpotlight.Connections do
     from(c in Connection,
       where: c.status == "pending",
       where: c.requester_id == ^user_id,
-      preload: [user: [:profile]],
+      preload: [receiver: [:profile]],
       order_by: [desc: c.inserted_at]
     )
     |> Repo.all()
@@ -165,7 +165,7 @@ defmodule InterestSpotlight.Connections do
   def list_request_history(user_id) do
     from(c in Connection,
       where: c.status in ["accepted", "rejected"],
-      where: c.user_id == ^user_id,
+      where: c.receiver_id == ^user_id,
       preload: [requester: [:profile]],
       order_by: [desc: c.updated_at]
     )
@@ -178,7 +178,7 @@ defmodule InterestSpotlight.Connections do
   def count_received_requests(user_id) do
     from(c in Connection,
       where: c.status == "pending",
-      where: c.user_id == ^user_id,
+      where: c.receiver_id == ^user_id,
       select: count(c.id)
     )
     |> Repo.one()
@@ -190,7 +190,7 @@ defmodule InterestSpotlight.Connections do
   def count_connections(user_id) do
     from(c in Connection,
       where: c.status == "accepted",
-      where: c.requester_id == ^user_id or c.user_id == ^user_id,
+      where: c.requester_id == ^user_id or c.receiver_id == ^user_id,
       select: count(c.id)
     )
     |> Repo.one()
@@ -203,8 +203,8 @@ defmodule InterestSpotlight.Connections do
     from(c in Connection,
       where: c.status == "accepted",
       where:
-        (c.requester_id == ^user_id_1 and c.user_id == ^user_id_2) or
-          (c.requester_id == ^user_id_2 and c.user_id == ^user_id_1)
+        (c.requester_id == ^user_id_1 and c.receiver_id == ^user_id_2) or
+          (c.requester_id == ^user_id_2 and c.receiver_id == ^user_id_1)
     )
     |> Repo.exists?()
   end
@@ -226,7 +226,7 @@ defmodule InterestSpotlight.Connections do
       %Connection{status: "pending", requester_id: ^current_user_id} ->
         :pending_sent
 
-      %Connection{status: "pending", user_id: ^current_user_id} ->
+      %Connection{status: "pending", receiver_id: ^current_user_id} ->
         :pending_received
 
       _ ->
@@ -239,7 +239,7 @@ defmodule InterestSpotlight.Connections do
   """
   def get_other_user(%Connection{} = connection, current_user_id) do
     if connection.requester_id == current_user_id do
-      connection.user
+      connection.receiver
     else
       connection.requester
     end
@@ -253,7 +253,7 @@ defmodule InterestSpotlight.Connections do
   end
 
   defp broadcast_connection_event(%Connection{} = connection, event) do
-    # Broadcast to both requester and addressee
+    # Broadcast to both requester and receiver
     Phoenix.PubSub.broadcast(
       InterestSpotlight.PubSub,
       "connections:#{connection.requester_id}",
@@ -262,7 +262,7 @@ defmodule InterestSpotlight.Connections do
 
     Phoenix.PubSub.broadcast(
       InterestSpotlight.PubSub,
-      "connections:#{connection.user_id}",
+      "connections:#{connection.receiver_id}",
       {event, connection}
     )
   end

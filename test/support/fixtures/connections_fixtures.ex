@@ -9,16 +9,16 @@ defmodule InterestSpotlight.ConnectionsFixtures do
   @doc """
   Creates a pending connection request between two users.
   """
-  def connection_request_fixture(requester_id, user_id) do
-    {:ok, connection} = Connections.create_connection_request(requester_id, user_id)
+  def connection_request_fixture(requester_id, receiver_id) do
+    {:ok, connection} = Connections.create_connection_request(requester_id, receiver_id)
     connection
   end
 
   @doc """
   Creates an accepted connection between two users.
   """
-  def accepted_connection_fixture(requester_id, user_id) do
-    connection = connection_request_fixture(requester_id, user_id)
+  def accepted_connection_fixture(requester_id, receiver_id) do
+    connection = connection_request_fixture(requester_id, receiver_id)
     {:ok, accepted_connection} = Connections.accept_connection_request(connection)
     accepted_connection
   end
@@ -26,8 +26,8 @@ defmodule InterestSpotlight.ConnectionsFixtures do
   @doc """
   Creates a rejected connection between two users.
   """
-  def rejected_connection_fixture(requester_id, user_id) do
-    connection = connection_request_fixture(requester_id, user_id)
+  def rejected_connection_fixture(requester_id, receiver_id) do
+    connection = connection_request_fixture(requester_id, receiver_id)
     {:ok, rejected_connection} = Connections.reject_connection_request(connection)
     rejected_connection
   end

@@ -22,7 +22,7 @@ defmodule InterestSpotlight.Accounts.User do
       foreign_key: :requester_id
 
     has_many :received_connection_requests, InterestSpotlight.Connections.Connection,
-      foreign_key: :user_id
+      foreign_key: :receiver_id
 
     timestamps(type: :utc_datetime)
   end

@@ -16,7 +16,7 @@ defmodule InterestSpotlight.ConnectionsTest do
                Connections.create_connection_request(user1.id, user2.id)
 
       assert connection.requester_id == user1.id
-      assert connection.user_id == user2.id
+      assert connection.receiver_id == user2.id
       assert connection.status == "pending"
     end
 
@@ -24,7 +24,7 @@ defmodule InterestSpotlight.ConnectionsTest do
       user = onboarded_user_fixture()
 
       assert {:error, changeset} = Connections.create_connection_request(user.id, user.id)
-      assert "cannot connect with yourself" in errors_on(changeset).user_id
+      assert "cannot connect with yourself" in errors_on(changeset).receiver_id
     end
 
     test "returns error when connection request already exists" do
@@ -241,7 +241,7 @@ defmodule InterestSpotlight.ConnectionsTest do
       assert Connections.list_connections(user1.id) == []
     end
 
-    test "preloads requester and user associations" do
+    test "preloads requester and receiver associations" do
       user1 = onboarded_user_fixture()
       user2 = onboarded_user_fixture()
 
@@ -250,7 +250,7 @@ defmodule InterestSpotlight.ConnectionsTest do
       [connection] = Connections.list_connections(user1.id)
 
       assert %InterestSpotlight.Accounts.User{} = connection.requester
-      assert %InterestSpotlight.Accounts.User{} = connection.user
+      assert %InterestSpotlight.Accounts.User{} = connection.receiver
     end
   end
 
@@ -476,24 +476,24 @@ defmodule InterestSpotlight.ConnectionsTest do
   end
 
   describe "get_other_user/2" do
-    test "returns user when current user is requester" do
+    test "returns receiver when current user is requester" do
       user1 = onboarded_user_fixture()
       user2 = onboarded_user_fixture()
 
       connection = accepted_connection_fixture(user1.id, user2.id)
-      connection = Repo.preload(connection, [:requester, :user])
+      connection = Repo.preload(connection, [:requester, :receiver])
 
       other_user = Connections.get_other_user(connection, user1.id)
 
       assert other_user.id == user2.id
     end
 
-    test "returns requester when current user is addressee" do
+    test "returns requester when current user is receiver" do
       user1 = onboarded_user_fixture()
       user2 = onboarded_user_fixture()
 
       connection = accepted_connection_fixture(user1.id, user2.id)
-      connection = Repo.preload(connection, [:requester, :user])
+      connection = Repo.preload(connection, [:requester, :receiver])
 
       other_user = Connections.get_other_user(connection, user2.id)
 

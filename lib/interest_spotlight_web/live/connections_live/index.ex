@@ -126,7 +126,7 @@ defmodule InterestSpotlightWeb.ConnectionsLive.Index do
          socket
          |> put_flash(:info, "Connection request cancelled")
          |> assign(:sent_requests, Connections.list_sent_requests(current_user.id))
-         |> update(:connection_status_map, &Map.put(&1, connection.user_id, nil))}
+         |> update(:connection_status_map, &Map.put(&1, connection.receiver_id, nil))}
 
       {:error, _changeset} ->
         {:noreply, put_flash(socket, :error, "Failed to cancel request")}
@@ -158,7 +158,7 @@ defmodule InterestSpotlightWeb.ConnectionsLive.Index do
 
     # If we're the recipient, update received requests
     socket =
-      if connection.user_id == current_user.id do
+      if connection.receiver_id == current_user.id do
         received_requests = Connections.list_received_requests(current_user.id)
 
         socket
@@ -181,7 +181,7 @@ defmodule InterestSpotlightWeb.ConnectionsLive.Index do
 
     other_user_id =
       if connection.requester_id == current_user.id,
-        do: connection.user_id,
+        do: connection.receiver_id,
         else: connection.requester_id
 
     {:noreply,
@@ -200,7 +200,7 @@ defmodule InterestSpotlightWeb.ConnectionsLive.Index do
 
     other_user_id =
       if connection.requester_id == current_user.id,
-        do: connection.user_id,
+        do: connection.receiver_id,
         else: connection.requester_id
 
     {:noreply,
@@ -218,7 +218,7 @@ defmodule InterestSpotlightWeb.ConnectionsLive.Index do
 
     other_user_id =
       if connection.requester_id == current_user.id,
-        do: connection.user_id,
+        do: connection.receiver_id,
         else: connection.requester_id
 
     {:noreply,
@@ -235,7 +235,7 @@ defmodule InterestSpotlightWeb.ConnectionsLive.Index do
 
     other_user_id =
       if connection.requester_id == current_user.id,
-        do: connection.user_id,
+        do: connection.receiver_id,
         else: connection.requester_id
 
     {:noreply,
@@ -447,12 +447,12 @@ defmodule InterestSpotlightWeb.ConnectionsLive.Index do
                     <div class="card-body p-4">
                       <div class="flex items-center gap-4">
                         <div class="relative">
-                          <%= if request.user.profile_photo do %>
+                          <%= if request.receiver.profile_photo do %>
                             <div class="avatar">
                               <div class="w-12 h-12 rounded-full">
                                 <img
-                                  src={"/uploads/#{request.user.profile_photo}"}
-                                  alt={request.user.first_name}
+                                  src={"/uploads/#{request.receiver.profile_photo}"}
+                                  alt={request.receiver.first_name}
                                   class="object-cover"
                                 />
                               </div>
@@ -461,7 +461,7 @@ defmodule InterestSpotlightWeb.ConnectionsLive.Index do
                             <div class="avatar placeholder">
                               <div class="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-secondary">
                                 <span class="text-sm font-bold text-primary-content flex items-center justify-center w-full h-full">
-                                  {get_user_initials(request.user)}
+                                  {get_user_initials(request.receiver)}
                                 </span>
                               </div>
                             </div>
@@ -469,7 +469,7 @@ defmodule InterestSpotlightWeb.ConnectionsLive.Index do
                           <%!-- Online/Offline indicator ---%>
                           <div class={[
                             "absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-base-100",
-                            (user_online?(request.user.id, @online_users) && "bg-green-500") ||
+                            (user_online?(request.receiver.id, @online_users) && "bg-green-500") ||
                               "bg-gray-400"
                           ]}>
                           </div>
@@ -477,10 +477,10 @@ defmodule InterestSpotlightWeb.ConnectionsLive.Index do
                         <div class="flex-1">
                           <p class="font-semibold">
                             <.link
-                              navigate={~p"/connections/#{request.user.id}"}
+                              navigate={~p"/connections/#{request.receiver.id}"}
                               class="hover:underline"
                             >
-                              {request.user.first_name} {request.user.last_name}
+                              {request.receiver.first_name} {request.receiver.last_name}
                             </.link>
                           </p>
                           <p class="text-sm text-base-content/70">Pending</p>

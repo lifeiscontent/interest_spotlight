@@ -149,7 +149,7 @@ defmodule InterestSpotlightWeb.ConnectionsLive.Show do
     user = socket.assigns.user
 
     # Update if this affects the current view
-    if connection.requester_id == user.id && connection.user_id == current_user.id do
+    if connection.requester_id == user.id && connection.receiver_id == current_user.id do
       {:noreply,
        socket
        |> assign(:connection_status, :pending_received)
@@ -165,8 +165,8 @@ defmodule InterestSpotlightWeb.ConnectionsLive.Show do
     user = socket.assigns.user
 
     # Update if this affects the current view
-    if (connection.requester_id == current_user.id && connection.user_id == user.id) ||
-         (connection.requester_id == user.id && connection.user_id == current_user.id) do
+    if (connection.requester_id == current_user.id && connection.receiver_id == user.id) ||
+         (connection.requester_id == user.id && connection.receiver_id == current_user.id) do
       # Reload interests since they're now visible
       interests = Interests.list_user_interests(user.id)
       profile = Profiles.get_profile_by_user_id(user.id)
