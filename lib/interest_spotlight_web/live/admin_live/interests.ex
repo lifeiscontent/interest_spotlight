@@ -67,7 +67,10 @@ defmodule InterestSpotlightWeb.AdminLive.Interests do
                 </button>
               </form>
             <% else %>
-              <span>{interest.name}</span>
+              <div class="flex-1">
+                <span class="font-medium">{interest.name}</span>
+                <span class="text-gray-500 text-sm ml-2">/{interest.slug}</span>
+              </div>
               <div class="flex gap-2">
                 <button
                   phx-click="start_edit"
