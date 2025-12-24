@@ -63,7 +63,7 @@ defmodule InterestSpotlight.Accounts do
   @doc """
   Lists all non-admin users excluding the given user.
   """
-  def list_users_except(user_id) do
+  def list_other_non_admin_users(user_id) do
     from(u in User,
       where: u.id != ^user_id,
       where: u.user_type != "admin",
