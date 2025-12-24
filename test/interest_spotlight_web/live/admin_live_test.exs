@@ -52,15 +52,16 @@ defmodule InterestSpotlightWeb.AdminLiveTest do
       assert html =~ "New interest name"
     end
 
-    test "displays existing interests", %{conn: conn} do
+    test "displays existing interests with slugs", %{conn: conn} do
       {:ok, interest} = Interests.create_interest(%{name: "Test Interest"})
 
       {:ok, _lv, html} = live(conn, ~p"/admin/interests")
 
       assert html =~ interest.name
+      assert html =~ "/#{interest.slug}"
     end
 
-    test "can add a new interest", %{conn: conn} do
+    test "can add a new interest with auto-generated slug", %{conn: conn} do
       {:ok, lv, _html} = live(conn, ~p"/admin/interests")
 
       result =
@@ -69,7 +70,11 @@ defmodule InterestSpotlightWeb.AdminLiveTest do
         |> render_submit()
 
       assert result =~ "New Test Interest"
-      assert Interests.list_interests() |> Enum.any?(&(&1.name == "New Test Interest"))
+      assert result =~ "/new-test-interest"
+
+      interest = Interests.list_interests() |> Enum.find(&(&1.name == "New Test Interest"))
+      assert interest
+      assert interest.slug == "new-test-interest"
     end
 
     test "ignores empty interest name", %{conn: conn} do
@@ -83,7 +88,7 @@ defmodule InterestSpotlightWeb.AdminLiveTest do
       assert length(Interests.list_interests()) == initial_count
     end
 
-    test "can start editing an interest", %{conn: conn} do
+    test "can start editing an interest with name and slug fields", %{conn: conn} do
       {:ok, interest} = Interests.create_interest(%{name: "Edit Me"})
 
       {:ok, lv, _html} = live(conn, ~p"/admin/interests")
@@ -95,9 +100,12 @@ defmodule InterestSpotlightWeb.AdminLiveTest do
 
       assert result =~ "Save"
       assert result =~ "Cancel"
+      assert result =~ "Name"
+      assert result =~ "Slug"
+      assert result =~ interest.slug
     end
 
-    test "can save edited interest", %{conn: conn} do
+    test "can save edited interest with new name and auto-generated slug", %{conn: conn} do
       {:ok, interest} = Interests.create_interest(%{name: "Edit Me"})
 
       {:ok, lv, _html} = live(conn, ~p"/admin/interests")
@@ -107,17 +115,46 @@ defmodule InterestSpotlightWeb.AdminLiveTest do
       |> element("button[phx-click='start_edit'][phx-value-id='#{interest.id}']")
       |> render_click()
 
-      # Save edit
+      # Save edit with new name (slug left empty to auto-generate)
       result =
         lv
-        |> form("form[phx-submit='save_edit']", %{"name" => "Updated Name"})
+        |> form("form[phx-submit='save_edit']", %{"name" => "Updated Name", "slug" => ""})
         |> render_submit()
 
       assert result =~ "Updated Name"
+      assert result =~ "/updated-name"
       refute result =~ "Edit Me"
 
       updated = Interests.get_interest!(interest.id)
       assert updated.name == "Updated Name"
+      assert updated.slug == "updated-name"
+    end
+
+    test "can save edited interest with custom slug", %{conn: conn} do
+      {:ok, interest} = Interests.create_interest(%{name: "Edit Me"})
+
+      {:ok, lv, _html} = live(conn, ~p"/admin/interests")
+
+      # Start edit
+      lv
+      |> element("button[phx-click='start_edit'][phx-value-id='#{interest.id}']")
+      |> render_click()
+
+      # Save edit with custom slug
+      result =
+        lv
+        |> form("form[phx-submit='save_edit']", %{
+          "name" => "Updated Name",
+          "slug" => "my-custom-slug"
+        })
+        |> render_submit()
+
+      assert result =~ "Updated Name"
+      assert result =~ "/my-custom-slug"
+
+      updated = Interests.get_interest!(interest.id)
+      assert updated.name == "Updated Name"
+      assert updated.slug == "my-custom-slug"
     end
 
     test "can cancel editing", %{conn: conn} do
@@ -186,7 +223,7 @@ defmodule InterestSpotlightWeb.AdminLiveTest do
       assert html =~ "Typing..."
     end
 
-    test "updates edit_name state on change during editing", %{conn: conn} do
+    test "updates edit fields state on change during editing", %{conn: conn} do
       {:ok, interest} = Interests.create_interest(%{name: "Edit Me"})
 
       {:ok, lv, _html} = live(conn, ~p"/admin/interests")
@@ -198,11 +235,44 @@ defmodule InterestSpotlightWeb.AdminLiveTest do
 
       # Change the edit name
       lv
-      |> element("input[name='name'][phx-change='update_edit_name']")
+      |> element("input[name='name'][phx-change='update_edit_fields']")
       |> render_change(%{"name" => "New Name"})
 
       html = render(lv)
       assert html =~ "New Name"
+
+      # Change the edit slug
+      lv
+      |> element("input[name='slug'][phx-change='update_edit_fields']")
+      |> render_change(%{"slug" => "new-slug"})
+
+      html = render(lv)
+      assert html =~ "new-slug"
+    end
+
+    test "rejects invalid slug format", %{conn: conn} do
+      {:ok, interest} = Interests.create_interest(%{name: "Edit Me"})
+      original_slug = interest.slug
+
+      {:ok, lv, _html} = live(conn, ~p"/admin/interests")
+
+      # Start edit
+      lv
+      |> element("button[phx-click='start_edit'][phx-value-id='#{interest.id}']")
+      |> render_click()
+
+      # Try to save with invalid slug
+      lv
+      |> form("form[phx-submit='save_edit']", %{
+        "name" => "Updated Name",
+        "slug" => "Invalid Slug!"
+      })
+      |> render_submit()
+
+      # Verify interest was NOT updated
+      unchanged = Interests.get_interest!(interest.id)
+      assert unchanged.name == "Edit Me"
+      assert unchanged.slug == original_slug
     end
   end
 end

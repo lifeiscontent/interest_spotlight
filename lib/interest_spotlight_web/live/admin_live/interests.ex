@@ -10,7 +10,8 @@ defmodule InterestSpotlightWeb.AdminLive.Interests do
      |> assign(:interests, Interests.list_interests())
      |> assign(:editing_id, nil)
      |> assign(:new_interest, "")
-     |> assign(:edit_name, "")}
+     |> assign(:edit_name, "")
+     |> assign(:edit_slug, "")}
   end
 
   def render(assigns) do
@@ -46,25 +47,43 @@ defmodule InterestSpotlightWeb.AdminLive.Interests do
         <%= for interest <- @interests do %>
           <div class="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg">
             <%= if @editing_id == interest.id do %>
-              <form phx-submit="save_edit" class="flex-1 flex gap-2">
-                <input
-                  type="text"
-                  name="name"
-                  value={@edit_name}
-                  class="flex-1 border border-gray-300 rounded px-3 py-1"
-                  phx-change="update_edit_name"
-                  autofocus
-                />
-                <button type="submit" class="px-3 py-1 bg-green-600 text-white rounded text-sm">
-                  Save
-                </button>
-                <button
-                  type="button"
-                  phx-click="cancel_edit"
-                  class="px-3 py-1 bg-gray-300 text-gray-700 rounded text-sm"
-                >
-                  Cancel
-                </button>
+              <form phx-submit="save_edit" class="flex-1">
+                <div class="flex flex-col gap-2">
+                  <div class="flex gap-2 items-center">
+                    <label class="text-sm text-gray-600 w-12">Name</label>
+                    <input
+                      type="text"
+                      name="name"
+                      value={@edit_name}
+                      class="flex-1 border border-gray-300 rounded px-3 py-1"
+                      phx-change="update_edit_fields"
+                      autofocus
+                    />
+                  </div>
+                  <div class="flex gap-2 items-center">
+                    <label class="text-sm text-gray-600 w-12">Slug</label>
+                    <input
+                      type="text"
+                      name="slug"
+                      value={@edit_slug}
+                      class="flex-1 border border-gray-300 rounded px-3 py-1 font-mono text-sm"
+                      phx-change="update_edit_fields"
+                      placeholder="auto-generated from name"
+                    />
+                  </div>
+                  <div class="flex gap-2 justify-end">
+                    <button
+                      type="button"
+                      phx-click="cancel_edit"
+                      class="px-3 py-1 bg-gray-300 text-gray-700 rounded text-sm"
+                    >
+                      Cancel
+                    </button>
+                    <button type="submit" class="px-3 py-1 bg-green-600 text-white rounded text-sm">
+                      Save
+                    </button>
+                  </div>
+                </div>
               </form>
             <% else %>
               <div class="flex-1">
@@ -76,6 +95,7 @@ defmodule InterestSpotlightWeb.AdminLive.Interests do
                   phx-click="start_edit"
                   phx-value-id={interest.id}
                   phx-value-name={interest.name}
+                  phx-value-slug={interest.slug}
                   class="px-3 py-1 text-blue-600 hover:bg-blue-50 rounded text-sm"
                 >
                   Edit
@@ -125,44 +145,74 @@ defmodule InterestSpotlightWeb.AdminLive.Interests do
     end
   end
 
-  def handle_event("start_edit", %{"id" => id, "name" => name}, socket) do
+  def handle_event("start_edit", %{"id" => id, "name" => name, "slug" => slug}, socket) do
     {:noreply,
      socket
      |> assign(:editing_id, String.to_integer(id))
-     |> assign(:edit_name, name)}
+     |> assign(:edit_name, name)
+     |> assign(:edit_slug, slug)}
   end
 
-  def handle_event("update_edit_name", %{"name" => name}, socket) do
-    {:noreply, assign(socket, :edit_name, name)}
+  def handle_event("update_edit_fields", params, socket) do
+    socket =
+      socket
+      |> maybe_assign(:edit_name, params["name"])
+      |> maybe_assign(:edit_slug, params["slug"])
+
+    {:noreply, socket}
   end
 
-  def handle_event("save_edit", %{"name" => name}, socket) do
+  defp maybe_assign(socket, _key, nil), do: socket
+  defp maybe_assign(socket, key, value), do: assign(socket, key, value)
+
+  def handle_event("save_edit", %{"name" => name, "slug" => slug}, socket) do
     name = String.trim(name)
+    slug = String.trim(slug)
 
     if name != "" do
       interest = Interests.get_interest!(socket.assigns.editing_id)
 
-      case Interests.update_interest(interest, %{name: name}) do
+      attrs =
+        if slug == "" do
+          %{name: name}
+        else
+          %{name: name, slug: slug}
+        end
+
+      case Interests.update_interest(interest, attrs) do
         {:ok, _interest} ->
           {:noreply,
            socket
            |> assign(:interests, Interests.list_interests())
            |> assign(:editing_id, nil)
-           |> assign(:edit_name, "")}
+           |> assign(:edit_name, "")
+           |> assign(:edit_slug, "")}
 
-        {:error, _changeset} ->
-          {:noreply, put_flash(socket, :error, "Could not update interest.")}
+        {:error, changeset} ->
+          errors = format_errors(changeset)
+          {:noreply, put_flash(socket, :error, "Could not update interest. #{errors}")}
       end
     else
       {:noreply, socket}
     end
   end
 
+  defp format_errors(changeset) do
+    Ecto.Changeset.traverse_errors(changeset, fn {msg, opts} ->
+      Enum.reduce(opts, msg, fn {key, value}, acc ->
+        String.replace(acc, "%{#{key}}", to_string(value))
+      end)
+    end)
+    |> Enum.map(fn {field, msgs} -> "#{field} #{Enum.join(msgs, ", ")}" end)
+    |> Enum.join("; ")
+  end
+
   def handle_event("cancel_edit", _params, socket) do
     {:noreply,
      socket
      |> assign(:editing_id, nil)
-     |> assign(:edit_name, "")}
+     |> assign(:edit_name, "")
+     |> assign(:edit_slug, "")}
   end
 
   def handle_event("delete", %{"id" => id}, socket) do
