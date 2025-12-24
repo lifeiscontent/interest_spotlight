@@ -50,6 +50,21 @@ defmodule InterestSpotlight.InterestsTest do
       assert interest.name == unique_name
     end
 
+    test "auto-generates slug from name" do
+      {:ok, interest} = Interests.create_interest(%{name: "Digital Art"})
+      assert interest.slug == "digital-art"
+    end
+
+    test "generates slug with special characters removed" do
+      {:ok, interest} = Interests.create_interest(%{name: "3D Modeling & Animation!"})
+      assert interest.slug == "3d-modeling-animation"
+    end
+
+    test "allows custom slug" do
+      {:ok, interest} = Interests.create_interest(%{name: "My Interest", slug: "custom-slug"})
+      assert interest.slug == "custom-slug"
+    end
+
     test "fails with empty name" do
       {:error, changeset} = Interests.create_interest(%{name: ""})
       assert %{name: ["can't be blank"]} = errors_on(changeset)
@@ -60,6 +75,17 @@ defmodule InterestSpotlight.InterestsTest do
       {:error, changeset} = Interests.create_interest(%{name: "Unique Art"})
       assert %{name: ["has already been taken"]} = errors_on(changeset)
     end
+
+    test "fails with duplicate slug" do
+      {:ok, _} = Interests.create_interest(%{name: "Art One", slug: "art"})
+      {:error, changeset} = Interests.create_interest(%{name: "Art Two", slug: "art"})
+      assert %{slug: ["has already been taken"]} = errors_on(changeset)
+    end
+
+    test "fails with invalid slug format" do
+      {:error, changeset} = Interests.create_interest(%{name: "Test", slug: "Invalid Slug!"})
+      assert %{slug: ["must be lowercase with hyphens only"]} = errors_on(changeset)
+    end
   end
 
   describe "update_interest/2" do
@@ -67,6 +93,21 @@ defmodule InterestSpotlight.InterestsTest do
       {:ok, interest} = Interests.create_interest(%{name: "Old Name"})
       {:ok, updated} = Interests.update_interest(interest, %{name: "New Name"})
       assert updated.name == "New Name"
+    end
+
+    test "updates slug when name changes" do
+      {:ok, interest} = Interests.create_interest(%{name: "Old Name"})
+      assert interest.slug == "old-name"
+
+      {:ok, updated} = Interests.update_interest(interest, %{name: "New Name"})
+      assert updated.slug == "new-name"
+    end
+
+    test "allows updating slug independently" do
+      {:ok, interest} = Interests.create_interest(%{name: "My Interest"})
+      {:ok, updated} = Interests.update_interest(interest, %{slug: "custom-slug"})
+      assert updated.slug == "custom-slug"
+      assert updated.name == "My Interest"
     end
 
     test "fails with empty name" do
