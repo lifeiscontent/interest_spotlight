@@ -60,6 +60,18 @@ defmodule InterestSpotlight.Accounts do
   """
   def get_user!(id), do: Repo.get!(User, id)
 
+  @doc """
+  Lists all non-admin users excluding the given user.
+  """
+  def list_other_non_admin_users(user_id) do
+    from(u in User,
+      where: u.id != ^user_id,
+      where: u.user_type != "admin",
+      order_by: [asc: u.first_name, asc: u.last_name]
+    )
+    |> Repo.all()
+  end
+
   ## User registration
 
   @doc """
@@ -185,7 +197,14 @@ defmodule InterestSpotlight.Accounts do
   """
   def get_user_by_session_token(token) do
     {:ok, query} = UserToken.verify_session_token_query(token)
-    Repo.one(query)
+
+    case Repo.one(query) do
+      {user, authenticated_at, token_inserted_at} ->
+        {%{user | authenticated_at: authenticated_at}, token_inserted_at}
+
+      nil ->
+        nil
+    end
   end
 
   @doc """
@@ -279,6 +298,55 @@ defmodule InterestSpotlight.Accounts do
   def delete_user_session_token(token) do
     Repo.delete_all(from(UserToken, where: [token: ^token, context: "session"]))
     :ok
+  end
+
+  ## Profile
+
+  @doc """
+  Returns an `%Ecto.Changeset{}` for changing the user profile.
+
+  ## Examples
+
+      iex> change_user_profile(user)
+      %Ecto.Changeset{data: %User{}}
+
+  """
+  def change_user_profile(user, attrs \\ %{}) do
+    User.profile_changeset(user, attrs)
+  end
+
+  @doc """
+  Updates the user profile.
+
+  ## Examples
+
+      iex> update_user_profile(user, %{profile_photo: "path/to/photo.jpg"})
+      {:ok, %User{}}
+
+      iex> update_user_profile(user, %{invalid: "data"})
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def update_user_profile(%User{} = user, attrs) do
+    user
+    |> User.profile_changeset(attrs)
+    |> Repo.update()
+  end
+
+  @doc """
+  Returns an `%Ecto.Changeset{}` for changing the user onboarding info.
+  """
+  def change_user_onboarding(user, attrs \\ %{}) do
+    User.onboarding_changeset(user, attrs)
+  end
+
+  @doc """
+  Updates the user onboarding info (first_name, last_name, location).
+  """
+  def update_user_onboarding(%User{} = user, attrs) do
+    user
+    |> User.onboarding_changeset(attrs)
+    |> Repo.update()
   end
 
   ## Token helper

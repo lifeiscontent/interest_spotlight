@@ -90,3 +90,8 @@ config :phoenix_live_view,
 
 # Disable swoosh api client as it is only required for production adapters.
 config :swoosh, :api_client, false
+
+# Configure uploads directory - uses environment variable if set
+config :interest_spotlight,
+       :uploads_directory,
+       System.get_env("UPLOADS_DIRECTORY") || Path.expand("../uploads_dev", __DIR__)

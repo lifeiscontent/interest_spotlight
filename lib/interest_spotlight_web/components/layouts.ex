@@ -5,6 +5,8 @@ defmodule InterestSpotlightWeb.Layouts do
   """
   use InterestSpotlightWeb, :html
 
+  alias Phoenix.LiveView.JS
+
   # Embed all files in layouts/* within this module.
   # The default root.html.heex file contains the HTML
   # skeleton of your application, namely HTML headers
@@ -12,15 +14,14 @@ defmodule InterestSpotlightWeb.Layouts do
   embed_templates "layouts/*"
 
   @doc """
-  Renders your app layout.
+  Renders the authenticated app layout with fixed header, scrollable content, and fixed footer.
 
-  This function is typically invoked from every template,
-  and it often contains your application menu, sidebar,
-  or similar.
+  Mobile: Bottom navigation bar
+  Desktop: Sidebar navigation
 
   ## Examples
 
-      <Layouts.app flash={@flash}>
+      <Layouts.app flash={@flash} current_scope={@current_scope}>
         <h1>Content</h1>
       </Layouts.app>
 
@@ -35,40 +36,159 @@ defmodule InterestSpotlightWeb.Layouts do
 
   def app(assigns) do
     ~H"""
-    <header class="navbar px-4 sm:px-6 lg:px-8">
-      <div class="flex-1">
-        <a href="/" class="flex-1 flex w-fit items-center gap-2">
-          <img src={~p"/images/logo.svg"} width="36" />
-          <span class="text-sm font-semibold">v{Application.spec(:phoenix, :vsn)}</span>
-        </a>
-      </div>
-      <div class="flex-none">
-        <ul class="flex flex-column px-1 space-x-4 items-center">
-          <li>
-            <a href="https://phoenixframework.org/" class="btn btn-ghost">Website</a>
-          </li>
-          <li>
-            <a href="https://github.com/phoenixframework/phoenix" class="btn btn-ghost">GitHub</a>
-          </li>
-          <li>
-            <.theme_toggle />
-          </li>
-          <li>
-            <a href="https://hexdocs.pm/phoenix/overview.html" class="btn btn-primary">
-              Get Started <span aria-hidden="true">&rarr;</span>
-            </a>
-          </li>
-        </ul>
-      </div>
-    </header>
+    <div class="flex flex-col h-screen md:flex-row">
+      <%!-- Desktop Sidebar - hidden on mobile --%>
+      <aside class="hidden md:flex md:flex-col md:w-64 md:border-r md:border-base-300 md:bg-base-100">
+        <div class="p-4 border-b border-base-300">
+          <.link navigate={~p"/dashboard"} class="text-xl font-bold text-primary">
+            INTERESTSPOTLIGHT
+          </.link>
+        </div>
+        <nav class="flex-1 p-4">
+          <ul class="menu space-y-1">
+            <li>
+              <.link navigate={~p"/dashboard"} class="flex items-center gap-3">
+                <.icon name="hero-home" class="size-5" />
+                <span>Home</span>
+              </.link>
+            </li>
+            <li>
+              <.link href="#" class="flex items-center gap-3">
+                <.icon name="hero-calendar" class="size-5" />
+                <span>Calendar</span>
+              </.link>
+            </li>
+            <li>
+              <.link navigate={~p"/connections"} class="flex items-center gap-3">
+                <.icon name="hero-user-group" class="size-5" />
+                <span>Connections</span>
+              </.link>
+            </li>
+            <li>
+              <.link navigate={~p"/profile"} class="flex items-center gap-3">
+                <.icon name="hero-user-circle" class="size-5" />
+                <span>Profile</span>
+              </.link>
+            </li>
+          </ul>
+        </nav>
+        <div class="p-4 border-t border-base-300">
+          <.theme_toggle />
+        </div>
+      </aside>
 
-    <main class="px-4 py-20 sm:px-6 lg:px-8">
-      <div class="mx-auto max-w-2xl space-y-4">
-        {render_slot(@inner_block)}
+      <%!-- Main content area --%>
+      <div class="flex-1 flex flex-col min-h-0">
+        <%!-- Fixed Header --%>
+        <header class="sticky top-0 z-10 bg-base-100 border-b border-base-300">
+          <div class="flex items-center justify-between px-4 h-14">
+            <%!-- Logo - visible on mobile, hidden on desktop --%>
+            <.link navigate={~p"/dashboard"} class="text-lg font-bold text-primary md:hidden">
+              INTERESTSPOTLIGHT
+            </.link>
+            <%!-- Spacer for desktop --%>
+            <div class="hidden md:block"></div>
+
+            <%!-- User dropdown --%>
+            <div class="dropdown dropdown-end">
+              <div tabindex="0" role="button" class="btn btn-ghost btn-circle avatar">
+                <%= if @current_scope && @current_scope.user && @current_scope.user.profile_photo do %>
+                  <div class="w-9 h-9 rounded-full overflow-hidden">
+                    <img
+                      src={"/uploads/#{@current_scope.user.profile_photo}"}
+                      alt="Profile"
+                      class="w-full h-full object-cover"
+                    />
+                  </div>
+                <% else %>
+                  <div class="avatar placeholder">
+                    <div class="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-secondary">
+                      <span class="text-sm font-bold text-primary-content flex items-center justify-center w-full h-full">
+                        {get_initials(@current_scope)}
+                      </span>
+                    </div>
+                  </div>
+                <% end %>
+              </div>
+              <ul
+                tabindex="0"
+                class="dropdown-content menu bg-base-100 rounded-box z-[1] w-52 p-2 shadow border border-base-300"
+              >
+                <li class="menu-title px-2 py-1 text-xs opacity-70">
+                  {@current_scope && @current_scope.user && @current_scope.user.email}
+                </li>
+                <li>
+                  <.link navigate={~p"/profile"}>
+                    <.icon name="hero-user-circle" class="size-4" /> Profile
+                  </.link>
+                </li>
+                <li>
+                  <.link navigate={~p"/users/settings"}>
+                    <.icon name="hero-cog-6-tooth" class="size-4" /> Settings
+                  </.link>
+                </li>
+                <li>
+                  <div class="flex items-center justify-between">
+                    <span class="flex items-center gap-2">
+                      <.icon name="hero-sun" class="size-4" /> Theme
+                    </span>
+                    <.theme_toggle />
+                  </div>
+                </li>
+                <div class="divider my-1"></div>
+                <li>
+                  <.link href={~p"/users/log-out"} method="delete" class="text-error">
+                    <.icon name="hero-arrow-right-on-rectangle" class="size-4" /> Log out
+                  </.link>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </header>
+
+        <%!-- Scrollable Content --%>
+        <main class="flex-1 overflow-y-auto pb-16 md:pb-0">
+          <div class="p-4">
+            {render_slot(@inner_block)}
+          </div>
+        </main>
+
+        <%!-- Fixed Bottom Navigation - mobile only --%>
+        <nav class="fixed bottom-0 left-0 right-0 bg-base-100 border-t border-base-300 md:hidden z-10">
+          <div class="flex items-center justify-around h-16">
+            <.bottom_nav_item href={~p"/dashboard"} icon="hero-home" label="Home" />
+            <.bottom_nav_item href="#" icon="hero-calendar" label="Calendar" />
+            <.bottom_nav_item href={~p"/connections"} icon="hero-user-group" label="Connections" />
+            <.bottom_nav_item href={~p"/profile"} icon="hero-user-circle" label="Profile" />
+          </div>
+        </nav>
       </div>
-    </main>
+    </div>
 
     <.flash_group flash={@flash} />
+    """
+  end
+
+  attr :href, :string, required: true
+  attr :icon, :string, required: true
+  attr :label, :string, required: true
+  attr :badge, :integer, default: nil
+  attr :active, :boolean, default: false
+
+  defp bottom_nav_item(assigns) do
+    ~H"""
+    <.link navigate={@href} class="flex flex-col items-center justify-center w-16 py-1 group">
+      <div class="relative">
+        <.icon name={@icon} class="size-6 text-base-content/70 group-hover:text-primary" />
+        <span
+          :if={@badge}
+          class="absolute -top-1 -right-2 bg-primary text-primary-content text-xs rounded-full size-4 flex items-center justify-center"
+        >
+          {@badge}
+        </span>
+      </div>
+      <span class="text-xs mt-1 text-base-content/70 group-hover:text-primary">{@label}</span>
+    </.link>
     """
   end
 
@@ -115,6 +235,26 @@ defmodule InterestSpotlightWeb.Layouts do
     """
   end
 
+  defp get_initials(nil), do: "?"
+
+  defp get_initials(%{user: nil}), do: "?"
+
+  defp get_initials(%{user: user}) do
+    cond do
+      user.first_name && user.last_name ->
+        String.upcase("#{String.first(user.first_name)}#{String.first(user.last_name)}")
+
+      user.first_name ->
+        String.upcase(String.slice(user.first_name, 0..1))
+
+      user.email ->
+        String.upcase(String.first(user.email))
+
+      true ->
+        "?"
+    end
+  end
+
   @doc """
   Provides dark vs light theme toggle based on themes defined in app.css.
 
@@ -149,6 +289,37 @@ defmodule InterestSpotlightWeb.Layouts do
         <.icon name="hero-moon-micro" class="size-4 opacity-75 hover:opacity-100" />
       </button>
     </div>
+    """
+  end
+
+  @doc """
+  Renders a minimal auth layout without sidebar or bottom navigation.
+  Used for unauthenticated pages like login and registration.
+
+  ## Examples
+
+      <Layouts.auth flash={@flash}>
+        <h1>Login</h1>
+      </Layouts.auth>
+
+  """
+  attr :flash, :map, required: true, doc: "the map of flash messages"
+
+  slot :inner_block, required: true
+
+  def auth(assigns) do
+    ~H"""
+    <div class="min-h-screen flex flex-col">
+      <main class="flex-1 flex items-center justify-center p-4">
+        <div class="w-full max-w-sm">
+          {render_slot(@inner_block)}
+        </div>
+      </main>
+      <footer class="p-4 flex justify-center">
+        <.theme_toggle />
+      </footer>
+    </div>
+    <.flash_group flash={@flash} />
     """
   end
 end

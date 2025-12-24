@@ -394,4 +394,56 @@ defmodule InterestSpotlight.AccountsTest do
       refute inspect(%User{password: "123456"}) =~ "password: \"123456\""
     end
   end
+
+  describe "change_user_profile/2" do
+    test "returns a user changeset" do
+      user = user_fixture()
+      assert %Ecto.Changeset{} = Accounts.change_user_profile(user)
+    end
+
+    test "allows profile_photo to be set" do
+      user = user_fixture()
+      changeset = Accounts.change_user_profile(user, %{profile_photo: "1/profile_photo/1.jpg"})
+      assert changeset.valid?
+      assert Ecto.Changeset.get_change(changeset, :profile_photo) == "1/profile_photo/1.jpg"
+    end
+  end
+
+  describe "update_user_profile/2" do
+    setup do
+      %{user: user_fixture()}
+    end
+
+    test "updates the user profile_photo", %{user: user} do
+      photo_path = "#{user.id}/profile_photo/#{user.id}.jpg"
+
+      assert {:ok, updated_user} =
+               Accounts.update_user_profile(user, %{profile_photo: photo_path})
+
+      assert updated_user.profile_photo == photo_path
+    end
+
+    test "can set profile_photo to nil", %{user: user} do
+      # First set a photo
+      {:ok, user_with_photo} =
+        Accounts.update_user_profile(user, %{profile_photo: "1/profile_photo/1.jpg"})
+
+      assert user_with_photo.profile_photo == "1/profile_photo/1.jpg"
+
+      # Then remove it
+      {:ok, user_without_photo} =
+        Accounts.update_user_profile(user_with_photo, %{profile_photo: nil})
+
+      assert is_nil(user_without_photo.profile_photo)
+    end
+
+    test "persists the profile_photo in the database", %{user: user} do
+      photo_path = "#{user.id}/profile_photo/test.png"
+      {:ok, _updated_user} = Accounts.update_user_profile(user, %{profile_photo: photo_path})
+
+      # Fetch fresh from database
+      db_user = Accounts.get_user!(user.id)
+      assert db_user.profile_photo == photo_path
+    end
+  end
 end

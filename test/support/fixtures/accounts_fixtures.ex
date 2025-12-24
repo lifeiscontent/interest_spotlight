@@ -8,6 +8,7 @@ defmodule InterestSpotlight.AccountsFixtures do
 
   alias InterestSpotlight.Accounts
   alias InterestSpotlight.Accounts.Scope
+  alias InterestSpotlight.Repo
 
   def unique_user_email, do: "user#{System.unique_integer()}@example.com"
   def valid_user_password, do: "hello world!"
@@ -27,6 +28,9 @@ defmodule InterestSpotlight.AccountsFixtures do
     user
   end
 
+  @doc """
+  Creates a confirmed user without onboarding (for testing onboarding flow).
+  """
   def user_fixture(attrs \\ %{}) do
     user = unconfirmed_user_fixture(attrs)
 
@@ -39,6 +43,63 @@ defmodule InterestSpotlight.AccountsFixtures do
       Accounts.login_user_by_magic_link(token)
 
     user
+  end
+
+  @doc """
+  Creates an onboarded regular user (with profile info and interests).
+  Use this for tests that require a fully onboarded user.
+  """
+  def onboarded_user_fixture(attrs \\ %{}) do
+    user = user_fixture(attrs)
+    complete_onboarding(user)
+  end
+
+  @doc """
+  Creates an admin user (admins skip onboarding checks).
+  """
+  def admin_fixture(attrs \\ %{}) do
+    user = user_fixture(attrs)
+
+    {:ok, admin} =
+      user
+      |> Ecto.Changeset.change(user_type: "admin")
+      |> Repo.update()
+
+    admin
+  end
+
+  @doc """
+  Completes onboarding for a user by adding profile info and interests.
+  """
+  def complete_onboarding(user) do
+    # Add profile info
+    {:ok, user} =
+      Accounts.update_user_onboarding(user, %{
+        first_name: "Test",
+        last_name: "User",
+        location: "Test City"
+      })
+
+    # Add 3 interests
+    ensure_interests_exist()
+    interests = InterestSpotlight.Interests.list_interests() |> Enum.take(3)
+
+    for interest <- interests do
+      InterestSpotlight.Interests.add_user_interest(user.id, interest.id)
+    end
+
+    # Return refreshed user
+    Accounts.get_user!(user.id)
+  end
+
+  defp ensure_interests_exist do
+    alias InterestSpotlight.Interests
+
+    if Interests.list_interests() == [] do
+      Interests.create_interest(%{name: "Test Interest 1"})
+      Interests.create_interest(%{name: "Test Interest 2"})
+      Interests.create_interest(%{name: "Test Interest 3"})
+    end
   end
 
   def user_scope_fixture do

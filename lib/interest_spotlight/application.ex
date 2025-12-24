@@ -13,6 +13,7 @@ defmodule InterestSpotlight.Application do
       {DNSCluster,
        query: Application.get_env(:interest_spotlight, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: InterestSpotlight.PubSub},
+      InterestSpotlightWeb.Presence,
       # Start a worker by calling: InterestSpotlight.Worker.start_link(arg)
       # {InterestSpotlight.Worker, arg},
       # Start to serve requests, typically the last entry
