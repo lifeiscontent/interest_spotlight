@@ -42,19 +42,11 @@ defmodule InterestSpotlightWeb.Router do
   #   pipe_through :api
   # end
 
-  # Enable LiveDashboard and Swoosh mailbox preview in development
+  # Enable Swoosh mailbox preview in development
   if Application.compile_env(:interest_spotlight, :dev_routes) do
-    # If you want to use the LiveDashboard in production, you should put
-    # it behind authentication and allow only admins to access it.
-    # If your application does not have an admins-only section yet,
-    # you can use Plug.BasicAuth to set up some basic authentication
-    # as long as you are also using SSL (which you should anyway).
-    import Phoenix.LiveDashboard.Router
-
     scope "/dev" do
       pipe_through :browser
 
-      live_dashboard "/dashboard", metrics: InterestSpotlightWeb.Telemetry
       forward "/mailbox", Plug.Swoosh.MailboxPreview
     end
   end
@@ -110,6 +102,8 @@ defmodule InterestSpotlightWeb.Router do
 
   ## Admin authentication routes
 
+  import Phoenix.LiveDashboard.Router
+
   scope "/", InterestSpotlightWeb do
     pipe_through [:admin_browser, :require_authenticated_admin]
 
@@ -122,6 +116,18 @@ defmodule InterestSpotlightWeb.Router do
     end
 
     post "/admins/update-password", AdminSessionController, :update_password
+  end
+
+  # LiveDashboard - protected by admin authentication
+  scope "/admins" do
+    pipe_through [:admin_browser, :require_authenticated_admin]
+
+    live_dashboard "/live-dashboard",
+      metrics: InterestSpotlightWeb.Telemetry,
+      additional_pages: [
+        admin: InterestSpotlightWeb.Dashboard.AdminPage,
+        interests: InterestSpotlightWeb.Dashboard.InterestsPage
+      ]
   end
 
   scope "/", InterestSpotlightWeb do
