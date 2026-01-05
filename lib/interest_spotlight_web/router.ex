@@ -1,6 +1,8 @@
 defmodule InterestSpotlightWeb.Router do
   use InterestSpotlightWeb, :router
 
+  import InterestSpotlightWeb.AdminAuth
+
   import InterestSpotlightWeb.UserAuth
 
   pipeline :browser do
@@ -10,6 +12,7 @@ defmodule InterestSpotlightWeb.Router do
     plug :put_root_layout, html: {InterestSpotlightWeb.Layouts, :root}
     plug :protect_from_forgery
     plug :put_secure_browser_headers
+    plug :fetch_current_scope_for_admin
     plug :fetch_current_scope_for_user
   end
 
@@ -108,5 +111,33 @@ defmodule InterestSpotlightWeb.Router do
 
     post "/users/log-in", UserSessionController, :create
     delete "/users/log-out", UserSessionController, :delete
+  end
+
+  ## Authentication routes
+
+  scope "/", InterestSpotlightWeb do
+    pipe_through [:browser, :require_authenticated_admin]
+
+    live_session :require_authenticated_admin,
+      on_mount: [{InterestSpotlightWeb.AdminAuth, :require_authenticated}] do
+      live "/admins/settings", AdminLive.Settings, :edit
+      live "/admins/settings/confirm-email/:token", AdminLive.Settings, :confirm_email
+    end
+
+    post "/admins/update-password", AdminSessionController, :update_password
+  end
+
+  scope "/", InterestSpotlightWeb do
+    pipe_through [:browser]
+
+    live_session :current_admin,
+      on_mount: [{InterestSpotlightWeb.AdminAuth, :mount_current_scope}] do
+      live "/admins/register", AdminLive.Registration, :new
+      live "/admins/log-in", AdminLive.Login, :new
+      live "/admins/log-in/:token", AdminLive.Confirmation, :new
+    end
+
+    post "/admins/log-in", AdminSessionController, :create
+    delete "/admins/log-out", AdminSessionController, :delete
   end
 end
