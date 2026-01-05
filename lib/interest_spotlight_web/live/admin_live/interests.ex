@@ -126,21 +126,6 @@ defmodule InterestSpotlightWeb.AdminLive.Interests do
     |> do_add_interest(socket)
   end
 
-  defp do_add_interest("", socket), do: {:noreply, socket}
-
-  defp do_add_interest(name, socket) do
-    case Interests.create_interest(%{name: name}) do
-      {:ok, _interest} ->
-        {:noreply,
-         socket
-         |> assign(:interests, Interests.list_interests())
-         |> assign(:new_interest, "")}
-
-      {:error, _changeset} ->
-        {:noreply, put_flash(socket, :error, "Could not create interest. It may already exist.")}
-    end
-  end
-
   def handle_event("start_edit", %{"id" => id, "name" => name, "slug" => slug}, socket) do
     {:noreply,
      socket
@@ -158,14 +143,49 @@ defmodule InterestSpotlightWeb.AdminLive.Interests do
     {:noreply, socket}
   end
 
-  defp maybe_assign(socket, _key, nil), do: socket
-  defp maybe_assign(socket, key, value), do: assign(socket, key, value)
-
   def handle_event("save_edit", %{"name" => name, "slug" => slug}, socket) do
     name = String.trim(name)
     slug = String.trim(slug)
     do_save_edit(name, slug, socket)
   end
+
+  def handle_event("cancel_edit", _params, socket) do
+    {:noreply,
+     socket
+     |> assign(:editing_id, nil)
+     |> assign(:edit_name, "")
+     |> assign(:edit_slug, "")}
+  end
+
+  def handle_event("delete", %{"id" => id}, socket) do
+    interest = Interests.get_interest!(String.to_integer(id))
+
+    case Interests.delete_interest(interest) do
+      {:ok, _interest} ->
+        {:noreply, assign(socket, :interests, Interests.list_interests())}
+
+      {:error, _changeset} ->
+        {:noreply, put_flash(socket, :error, "Could not delete interest.")}
+    end
+  end
+
+  defp do_add_interest("", socket), do: {:noreply, socket}
+
+  defp do_add_interest(name, socket) do
+    case Interests.create_interest(%{name: name}) do
+      {:ok, _interest} ->
+        {:noreply,
+         socket
+         |> assign(:interests, Interests.list_interests())
+         |> assign(:new_interest, "")}
+
+      {:error, _changeset} ->
+        {:noreply, put_flash(socket, :error, "Could not create interest. It may already exist.")}
+    end
+  end
+
+  defp maybe_assign(socket, _key, nil), do: socket
+  defp maybe_assign(socket, key, value), do: assign(socket, key, value)
 
   defp do_save_edit("", _slug, socket), do: {:noreply, socket}
 
@@ -201,25 +221,5 @@ defmodule InterestSpotlightWeb.AdminLive.Interests do
     end)
     |> Enum.map(fn {field, msgs} -> "#{field} #{Enum.join(msgs, ", ")}" end)
     |> Enum.join("; ")
-  end
-
-  def handle_event("cancel_edit", _params, socket) do
-    {:noreply,
-     socket
-     |> assign(:editing_id, nil)
-     |> assign(:edit_name, "")
-     |> assign(:edit_slug, "")}
-  end
-
-  def handle_event("delete", %{"id" => id}, socket) do
-    interest = Interests.get_interest!(String.to_integer(id))
-
-    case Interests.delete_interest(interest) do
-      {:ok, _interest} ->
-        {:noreply, assign(socket, :interests, Interests.list_interests())}
-
-      {:error, _changeset} ->
-        {:noreply, put_flash(socket, :error, "Could not delete interest.")}
-    end
   end
 end
