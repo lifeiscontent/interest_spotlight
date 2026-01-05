@@ -12,7 +12,6 @@ defmodule InterestSpotlight.Accounts.User do
     field :first_name, :string
     field :last_name, :string
     field :location, :string
-    field :user_type, :string, default: "user"
     field :profile_visibility, :string, default: "public"
 
     has_one :profile, InterestSpotlight.Profiles.Profile
@@ -53,12 +52,6 @@ defmodule InterestSpotlight.Accounts.User do
     |> validate_length(:last_name, min: 1, max: 100)
     |> validate_length(:location, min: 1, max: 255)
   end
-
-  @doc """
-  Checks if user is an admin.
-  """
-  def admin?(%__MODULE__{user_type: "admin"}), do: true
-  def admin?(_), do: false
 
   @doc """
   Checks if basic onboarding info is complete.

@@ -8,7 +8,6 @@ defmodule InterestSpotlight.AccountsFixtures do
 
   alias InterestSpotlight.Accounts
   alias InterestSpotlight.Accounts.Scope
-  alias InterestSpotlight.Repo
 
   def unique_user_email, do: "user#{System.unique_integer()}@example.com"
   def valid_user_password, do: "hello world!"
@@ -52,20 +51,6 @@ defmodule InterestSpotlight.AccountsFixtures do
   def onboarded_user_fixture(attrs \\ %{}) do
     user = user_fixture(attrs)
     complete_onboarding(user)
-  end
-
-  @doc """
-  Creates an admin user (admins skip onboarding checks).
-  """
-  def admin_fixture(attrs \\ %{}) do
-    user = user_fixture(attrs)
-
-    {:ok, admin} =
-      user
-      |> Ecto.Changeset.change(user_type: "admin")
-      |> Repo.update()
-
-    admin
   end
 
   @doc """

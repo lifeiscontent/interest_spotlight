@@ -15,7 +15,7 @@ defmodule InterestSpotlightWeb.ConnectionsLive.Index do
       track_presence(socket, current_user.id)
     end
 
-    all_users = Accounts.list_other_non_admin_users(current_user.id)
+    all_users = Accounts.list_other_users(current_user.id)
     connections = Connections.list_connections(current_user.id)
     received_requests = Connections.list_received_requests(current_user.id)
     sent_requests = Connections.list_sent_requests(current_user.id)

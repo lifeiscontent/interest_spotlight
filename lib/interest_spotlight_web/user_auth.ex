@@ -260,9 +260,6 @@ defmodule InterestSpotlightWeb.UserAuth do
 
         {:halt, socket}
 
-      User.admin?(user) ->
-        {:cont, socket}
-
       not User.onboarding_complete?(user) ->
         socket = Phoenix.LiveView.redirect(socket, to: ~p"/onboarding")
         {:halt, socket}
@@ -273,38 +270,6 @@ defmodule InterestSpotlightWeb.UserAuth do
 
       true ->
         {:cont, socket}
-    end
-  end
-
-  def on_mount(:require_admin, _params, session, socket) do
-    socket = mount_current_scope(socket, session)
-    user = socket.assigns.current_scope && socket.assigns.current_scope.user
-
-    if user && User.admin?(user) do
-      {:cont, socket}
-    else
-      socket =
-        socket
-        |> Phoenix.LiveView.put_flash(:error, "You don't have access to this page.")
-        |> Phoenix.LiveView.redirect(to: ~p"/")
-
-      {:halt, socket}
-    end
-  end
-
-  def on_mount(:require_user, _params, session, socket) do
-    socket = mount_current_scope(socket, session)
-    user = socket.assigns.current_scope && socket.assigns.current_scope.user
-
-    if user && !User.admin?(user) do
-      {:cont, socket}
-    else
-      socket =
-        socket
-        |> Phoenix.LiveView.put_flash(:error, "You don't have access to this page.")
-        |> Phoenix.LiveView.redirect(to: ~p"/")
-
-      {:halt, socket}
     end
   end
 
@@ -357,10 +322,6 @@ defmodule InterestSpotlightWeb.UserAuth do
         |> redirect(to: ~p"/users/log-in")
         |> halt()
 
-      User.admin?(user) ->
-        # Admins skip onboarding
-        conn
-
       not User.onboarding_complete?(user) ->
         conn
         |> redirect(to: ~p"/onboarding")
@@ -373,38 +334,6 @@ defmodule InterestSpotlightWeb.UserAuth do
 
       true ->
         conn
-    end
-  end
-
-  @doc """
-  Plug for routes that require the user to be a regular user (not admin).
-  """
-  def require_user(conn, _opts) do
-    user = conn.assigns.current_scope && conn.assigns.current_scope.user
-
-    if user && !User.admin?(user) do
-      conn
-    else
-      conn
-      |> put_flash(:error, "You don't have access to this page.")
-      |> redirect(to: ~p"/")
-      |> halt()
-    end
-  end
-
-  @doc """
-  Plug for routes that require the user to be an admin.
-  """
-  def require_admin(conn, _opts) do
-    user = conn.assigns.current_scope && conn.assigns.current_scope.user
-
-    if user && User.admin?(user) do
-      conn
-    else
-      conn
-      |> put_flash(:error, "You don't have access to this page.")
-      |> redirect(to: ~p"/")
-      |> halt()
     end
   end
 end
