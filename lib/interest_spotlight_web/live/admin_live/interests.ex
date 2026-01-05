@@ -16,108 +16,103 @@ defmodule InterestSpotlightWeb.AdminLive.Interests do
 
   def render(assigns) do
     ~H"""
-    <div class="max-w-2xl mx-auto p-4">
-      <div class="flex items-center justify-between mb-6">
-        <h1 class="text-2xl font-bold">Manage Interests</h1>
-        <.link navigate={~p"/admin"} class="text-blue-600 hover:underline">
-          ← Back to Dashboard
-        </.link>
-      </div>
-
-      <form phx-submit="add_interest" class="mb-6">
-        <div class="flex gap-2">
-          <input
-            type="text"
-            name="name"
-            value={@new_interest}
-            placeholder="New interest name"
-            class="flex-1 border border-gray-300 rounded-lg px-4 py-2"
-            phx-change="update_new_interest"
-          />
-          <button
-            type="submit"
-            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          >
-            Add
-          </button>
+    <Layouts.admin_app flash={@flash} current_scope={@current_scope}>
+      <div class="max-w-2xl mx-auto">
+        <div class="flex items-center justify-between mb-6">
+          <h1 class="text-2xl font-bold">Manage Interests</h1>
+          <.link navigate={~p"/admins/dashboard"} class="text-primary hover:underline">
+            ← Back to Dashboard
+          </.link>
         </div>
-      </form>
 
-      <div class="space-y-2">
-        <%= for interest <- @interests do %>
-          <div class="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg">
-            <%= if @editing_id == interest.id do %>
-              <form phx-submit="save_edit" class="flex-1">
-                <div class="flex flex-col gap-2">
-                  <div class="flex gap-2 items-center">
-                    <label class="text-sm text-gray-600 w-12">Name</label>
-                    <input
-                      type="text"
-                      name="name"
-                      value={@edit_name}
-                      class="flex-1 border border-gray-300 rounded px-3 py-1"
-                      phx-change="update_edit_fields"
-                      autofocus
-                    />
-                  </div>
-                  <div class="flex gap-2 items-center">
-                    <label class="text-sm text-gray-600 w-12">Slug</label>
-                    <input
-                      type="text"
-                      name="slug"
-                      value={@edit_slug}
-                      class="flex-1 border border-gray-300 rounded px-3 py-1 font-mono text-sm"
-                      phx-change="update_edit_fields"
-                      placeholder="auto-generated from name"
-                    />
-                  </div>
-                  <div class="flex gap-2 justify-end">
-                    <button
-                      type="button"
-                      phx-click="cancel_edit"
-                      class="px-3 py-1 bg-gray-300 text-gray-700 rounded text-sm"
-                    >
-                      Cancel
-                    </button>
-                    <button type="submit" class="px-3 py-1 bg-green-600 text-white rounded text-sm">
-                      Save
-                    </button>
-                  </div>
-                </div>
-              </form>
-            <% else %>
-              <div class="flex-1">
-                <span class="font-medium">{interest.name}</span>
-                <span class="text-gray-500 text-sm ml-2">/{interest.slug}</span>
-              </div>
-              <div class="flex gap-2">
-                <button
-                  phx-click="start_edit"
-                  phx-value-id={interest.id}
-                  phx-value-name={interest.name}
-                  phx-value-slug={interest.slug}
-                  class="px-3 py-1 text-blue-600 hover:bg-blue-50 rounded text-sm"
-                >
-                  Edit
-                </button>
-                <button
-                  phx-click="delete"
-                  phx-value-id={interest.id}
-                  data-confirm="Are you sure you want to delete this interest?"
-                  class="px-3 py-1 text-red-600 hover:bg-red-50 rounded text-sm"
-                >
-                  Delete
-                </button>
-              </div>
-            <% end %>
+        <form phx-submit="add_interest" class="mb-6">
+          <div class="flex gap-2">
+            <input
+              type="text"
+              name="name"
+              value={@new_interest}
+              placeholder="New interest name"
+              class="input input-bordered flex-1"
+              phx-change="update_new_interest"
+            />
+            <button type="submit" class="btn btn-primary">
+              Add
+            </button>
           </div>
+        </form>
+
+        <div class="space-y-2">
+          <%= for interest <- @interests do %>
+            <div class="flex items-center justify-between p-3 bg-base-100 border border-base-300 rounded-lg">
+              <%= if @editing_id == interest.id do %>
+                <form phx-submit="save_edit" class="flex-1">
+                  <div class="flex flex-col gap-2">
+                    <div class="flex gap-2 items-center">
+                      <label class="text-sm text-base-content/70 w-12">Name</label>
+                      <input
+                        type="text"
+                        name="name"
+                        value={@edit_name}
+                        class="input input-bordered input-sm flex-1"
+                        phx-change="update_edit_fields"
+                        autofocus
+                      />
+                    </div>
+                    <div class="flex gap-2 items-center">
+                      <label class="text-sm text-base-content/70 w-12">Slug</label>
+                      <input
+                        type="text"
+                        name="slug"
+                        value={@edit_slug}
+                        class="input input-bordered input-sm flex-1 font-mono text-sm"
+                        phx-change="update_edit_fields"
+                        placeholder="auto-generated from name"
+                      />
+                    </div>
+                    <div class="flex gap-2 justify-end">
+                      <button type="button" phx-click="cancel_edit" class="btn btn-ghost btn-sm">
+                        Cancel
+                      </button>
+                      <button type="submit" class="btn btn-success btn-sm">
+                        Save
+                      </button>
+                    </div>
+                  </div>
+                </form>
+              <% else %>
+                <div class="flex-1">
+                  <span class="font-medium">{interest.name}</span>
+                  <span class="text-base-content/50 text-sm ml-2">/{interest.slug}</span>
+                </div>
+                <div class="flex gap-2">
+                  <button
+                    phx-click="start_edit"
+                    phx-value-id={interest.id}
+                    phx-value-name={interest.name}
+                    phx-value-slug={interest.slug}
+                    class="btn btn-ghost btn-sm text-primary"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    phx-click="delete"
+                    phx-value-id={interest.id}
+                    data-confirm="Are you sure you want to delete this interest?"
+                    class="btn btn-ghost btn-sm text-error"
+                  >
+                    Delete
+                  </button>
+                </div>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+
+        <%= if Enum.empty?(@interests) do %>
+          <p class="text-center text-base-content/50 py-8">No interests yet. Add one above.</p>
         <% end %>
       </div>
-
-      <%= if Enum.empty?(@interests) do %>
-        <p class="text-center text-gray-500 py-8">No interests yet. Add one above.</p>
-      <% end %>
-    </div>
+    </Layouts.admin_app>
     """
   end
 

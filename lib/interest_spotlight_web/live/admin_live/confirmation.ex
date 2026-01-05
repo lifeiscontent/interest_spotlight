@@ -6,8 +6,8 @@ defmodule InterestSpotlightWeb.AdminLive.Confirmation do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash} current_scope={@current_scope}>
-      <div class="mx-auto max-w-sm">
+    <Layouts.admin_auth flash={@flash}>
+      <div>
         <div class="text-center">
           <.header>Welcome {@admin.email}</.header>
         </div>
@@ -68,7 +68,7 @@ defmodule InterestSpotlightWeb.AdminLive.Confirmation do
           Tip: If you prefer passwords, you can enable them in the admin settings.
         </p>
       </div>
-    </Layouts.app>
+    </Layouts.admin_auth>
     """
   end
 

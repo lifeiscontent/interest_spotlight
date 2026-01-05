@@ -7,8 +7,8 @@ defmodule InterestSpotlightWeb.AdminLive.Registration do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash} current_scope={@current_scope}>
-      <div class="mx-auto max-w-sm">
+    <Layouts.admin_auth flash={@flash}>
+      <div>
         <div class="text-center">
           <.header>
             Register for an account
@@ -37,7 +37,7 @@ defmodule InterestSpotlightWeb.AdminLive.Registration do
           </.button>
         </.form>
       </div>
-    </Layouts.app>
+    </Layouts.admin_auth>
     """
   end
 

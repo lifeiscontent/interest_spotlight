@@ -322,4 +322,185 @@ defmodule InterestSpotlightWeb.Layouts do
     <.flash_group flash={@flash} />
     """
   end
+
+  @doc """
+  Renders a minimal auth layout for admin login/register pages.
+  No sidebar or bottom navigation.
+
+  ## Examples
+
+      <Layouts.admin_auth flash={@flash}>
+        <h1>Admin Login</h1>
+      </Layouts.admin_auth>
+
+  """
+  attr :flash, :map, required: true, doc: "the map of flash messages"
+
+  slot :inner_block, required: true
+
+  def admin_auth(assigns) do
+    ~H"""
+    <div class="min-h-screen flex flex-col bg-base-200">
+      <header class="p-4">
+        <.link navigate={~p"/"} class="text-xl font-bold text-primary">
+          INTERESTSPOTLIGHT <span class="text-sm font-normal text-base-content/70">Admin</span>
+        </.link>
+      </header>
+      <main class="flex-1 flex items-center justify-center p-4">
+        <div class="w-full max-w-sm">
+          {render_slot(@inner_block)}
+        </div>
+      </main>
+      <footer class="p-4 flex justify-center">
+        <.theme_toggle />
+      </footer>
+    </div>
+    <.flash_group flash={@flash} />
+    """
+  end
+
+  @doc """
+  Renders the admin app layout with sidebar navigation.
+  Used for authenticated admin pages like dashboard and settings.
+
+  ## Examples
+
+      <Layouts.admin_app flash={@flash} current_scope={@current_scope}>
+        <h1>Admin Dashboard</h1>
+      </Layouts.admin_app>
+
+  """
+  attr :flash, :map, required: true, doc: "the map of flash messages"
+
+  attr :current_scope, :map,
+    default: nil,
+    doc: "the current admin scope"
+
+  slot :inner_block, required: true
+
+  def admin_app(assigns) do
+    ~H"""
+    <div class="flex flex-col h-screen md:flex-row">
+      <%!-- Desktop Sidebar --%>
+      <aside class="hidden md:flex md:flex-col md:w-64 md:border-r md:border-base-300 md:bg-base-100">
+        <div class="p-4 border-b border-base-300">
+          <.link navigate={~p"/admins/dashboard"} class="text-xl font-bold text-primary">
+            INTERESTSPOTLIGHT
+          </.link>
+          <div class="text-xs text-base-content/70 mt-1">Admin Panel</div>
+        </div>
+        <nav class="flex-1 p-4">
+          <ul class="menu space-y-1">
+            <li>
+              <.link navigate={~p"/admins/dashboard"} class="flex items-center gap-3">
+                <.icon name="hero-home" class="size-5" />
+                <span>Dashboard</span>
+              </.link>
+            </li>
+            <li>
+              <.link navigate={~p"/admins/interests"} class="flex items-center gap-3">
+                <.icon name="hero-heart" class="size-5" />
+                <span>Interests</span>
+              </.link>
+            </li>
+            <li>
+              <.link navigate={~p"/admins/settings"} class="flex items-center gap-3">
+                <.icon name="hero-cog-6-tooth" class="size-5" />
+                <span>Settings</span>
+              </.link>
+            </li>
+          </ul>
+        </nav>
+        <div class="p-4 border-t border-base-300">
+          <.theme_toggle />
+        </div>
+      </aside>
+
+      <%!-- Main content area --%>
+      <div class="flex-1 flex flex-col min-h-0">
+        <%!-- Fixed Header --%>
+        <header class="sticky top-0 z-10 bg-base-100 border-b border-base-300">
+          <div class="flex items-center justify-between px-4 h-14">
+            <%!-- Logo - visible on mobile --%>
+            <.link navigate={~p"/admins/dashboard"} class="text-lg font-bold text-primary md:hidden">
+              INTERESTSPOTLIGHT <span class="text-xs font-normal">Admin</span>
+            </.link>
+            <%!-- Spacer for desktop --%>
+            <div class="hidden md:block"></div>
+
+            <%!-- Admin dropdown --%>
+            <div class="dropdown dropdown-end">
+              <div tabindex="0" role="button" class="btn btn-ghost btn-circle avatar">
+                <div class="avatar placeholder">
+                  <div class="w-9 h-9 rounded-full bg-gradient-to-br from-secondary to-accent">
+                    <span class="text-sm font-bold text-secondary-content flex items-center justify-center w-full h-full">
+                      {get_admin_initials(@current_scope)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <ul
+                tabindex="0"
+                class="dropdown-content menu bg-base-100 rounded-box z-[1] w-52 p-2 shadow border border-base-300"
+              >
+                <li class="menu-title px-2 py-1 text-xs opacity-70">
+                  {@current_scope && @current_scope.admin && @current_scope.admin.email}
+                </li>
+                <li>
+                  <.link navigate={~p"/admins/settings"}>
+                    <.icon name="hero-cog-6-tooth" class="size-4" /> Settings
+                  </.link>
+                </li>
+                <li>
+                  <div class="flex items-center justify-between">
+                    <span class="flex items-center gap-2">
+                      <.icon name="hero-sun" class="size-4" /> Theme
+                    </span>
+                    <.theme_toggle />
+                  </div>
+                </li>
+                <div class="divider my-1"></div>
+                <li>
+                  <.link href={~p"/admins/log-out"} method="delete" class="text-error">
+                    <.icon name="hero-arrow-right-on-rectangle" class="size-4" /> Log out
+                  </.link>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </header>
+
+        <%!-- Scrollable Content --%>
+        <main class="flex-1 overflow-y-auto pb-16 md:pb-0">
+          <div class="p-4">
+            {render_slot(@inner_block)}
+          </div>
+        </main>
+
+        <%!-- Fixed Bottom Navigation - mobile only --%>
+        <nav class="fixed bottom-0 left-0 right-0 bg-base-100 border-t border-base-300 md:hidden z-10">
+          <div class="flex items-center justify-around h-16">
+            <.bottom_nav_item href={~p"/admins/dashboard"} icon="hero-home" label="Dashboard" />
+            <.bottom_nav_item href={~p"/admins/interests"} icon="hero-heart" label="Interests" />
+            <.bottom_nav_item href={~p"/admins/settings"} icon="hero-cog-6-tooth" label="Settings" />
+          </div>
+        </nav>
+      </div>
+    </div>
+
+    <.flash_group flash={@flash} />
+    """
+  end
+
+  defp get_admin_initials(nil), do: "A"
+
+  defp get_admin_initials(%{admin: nil}), do: "A"
+
+  defp get_admin_initials(%{admin: admin}) do
+    if admin.email do
+      String.upcase(String.first(admin.email))
+    else
+      "A"
+    end
+  end
 end

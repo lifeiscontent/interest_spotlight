@@ -85,20 +85,6 @@ defmodule InterestSpotlightWeb.Router do
     post "/users/update-password", UserSessionController, :update_password
   end
 
-  # Admin-only routes
-  scope "/admin", InterestSpotlightWeb do
-    pipe_through [:browser, :require_authenticated_user, :require_admin]
-
-    live_session :admin,
-      on_mount: [
-        {InterestSpotlightWeb.UserAuth, :require_authenticated},
-        {InterestSpotlightWeb.UserAuth, :require_admin}
-      ] do
-      live "/", AdminLive.Dashboard, :index
-      live "/interests", AdminLive.Interests, :index
-    end
-  end
-
   scope "/", InterestSpotlightWeb do
     pipe_through [:browser]
 
@@ -122,6 +108,8 @@ defmodule InterestSpotlightWeb.Router do
       on_mount: [{InterestSpotlightWeb.AdminAuth, :require_authenticated}] do
       live "/admins/settings", AdminLive.Settings, :edit
       live "/admins/settings/confirm-email/:token", AdminLive.Settings, :confirm_email
+      live "/admins/dashboard", AdminLive.Dashboard, :index
+      live "/admins/interests", AdminLive.Interests, :index
     end
 
     post "/admins/update-password", AdminSessionController, :update_password
