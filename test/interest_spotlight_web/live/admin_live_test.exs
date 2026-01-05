@@ -10,33 +10,33 @@ defmodule InterestSpotlightWeb.AdminLiveTest do
     setup :register_and_log_in_admin
 
     test "renders admin dashboard", %{conn: conn} do
-      {:ok, _lv, html} = live(conn, ~p"/admin")
+      {:ok, _lv, html} = live(conn, ~p"/admins/dashboard")
 
       assert html =~ "Admin Dashboard"
       assert html =~ "Manage Interests"
     end
 
     test "has link to interests management", %{conn: conn} do
-      {:ok, _lv, html} = live(conn, ~p"/admin")
+      {:ok, _lv, html} = live(conn, ~p"/admins/dashboard")
 
-      assert html =~ ~p"/admin/interests"
+      assert html =~ ~p"/admins/interests"
     end
 
     test "regular user cannot access admin dashboard", %{conn: _conn} do
       user = onboarded_user_fixture()
       conn = build_conn() |> log_in_user(user)
 
-      assert {:error, redirect} = live(conn, ~p"/admin")
+      assert {:error, redirect} = live(conn, ~p"/admins/dashboard")
       assert {:redirect, %{to: path}} = redirect
-      assert path == ~p"/"
+      assert path == ~p"/admins/log-in"
     end
 
     test "non-authenticated user cannot access admin dashboard", %{conn: _conn} do
       conn = build_conn()
-      assert {:error, redirect} = live(conn, ~p"/admin")
+      assert {:error, redirect} = live(conn, ~p"/admins/dashboard")
 
       assert {:redirect, %{to: path, flash: flash}} = redirect
-      assert path == ~p"/users/log-in"
+      assert path == ~p"/admins/log-in"
       assert %{"error" => "You must log in to access this page."} = flash
     end
   end
@@ -45,7 +45,7 @@ defmodule InterestSpotlightWeb.AdminLiveTest do
     setup :register_and_log_in_admin
 
     test "renders interests management page", %{conn: conn} do
-      {:ok, _lv, html} = live(conn, ~p"/admin/interests")
+      {:ok, _lv, html} = live(conn, ~p"/admins/interests")
 
       assert html =~ "Manage Interests"
       assert html =~ "Back to Dashboard"
@@ -55,14 +55,14 @@ defmodule InterestSpotlightWeb.AdminLiveTest do
     test "displays existing interests with slugs", %{conn: conn} do
       {:ok, interest} = Interests.create_interest(%{name: "Test Interest"})
 
-      {:ok, _lv, html} = live(conn, ~p"/admin/interests")
+      {:ok, _lv, html} = live(conn, ~p"/admins/interests")
 
       assert html =~ interest.name
       assert html =~ "/#{interest.slug}"
     end
 
     test "can add a new interest with auto-generated slug", %{conn: conn} do
-      {:ok, lv, _html} = live(conn, ~p"/admin/interests")
+      {:ok, lv, _html} = live(conn, ~p"/admins/interests")
 
       result =
         lv
@@ -78,7 +78,7 @@ defmodule InterestSpotlightWeb.AdminLiveTest do
     end
 
     test "ignores empty interest name", %{conn: conn} do
-      {:ok, lv, _html} = live(conn, ~p"/admin/interests")
+      {:ok, lv, _html} = live(conn, ~p"/admins/interests")
       initial_count = length(Interests.list_interests())
 
       lv
@@ -91,7 +91,7 @@ defmodule InterestSpotlightWeb.AdminLiveTest do
     test "can start editing an interest with name and slug fields", %{conn: conn} do
       {:ok, interest} = Interests.create_interest(%{name: "Edit Me"})
 
-      {:ok, lv, _html} = live(conn, ~p"/admin/interests")
+      {:ok, lv, _html} = live(conn, ~p"/admins/interests")
 
       result =
         lv
@@ -108,7 +108,7 @@ defmodule InterestSpotlightWeb.AdminLiveTest do
     test "can save edited interest with new name and auto-generated slug", %{conn: conn} do
       {:ok, interest} = Interests.create_interest(%{name: "Edit Me"})
 
-      {:ok, lv, _html} = live(conn, ~p"/admin/interests")
+      {:ok, lv, _html} = live(conn, ~p"/admins/interests")
 
       # Start edit
       lv
@@ -133,7 +133,7 @@ defmodule InterestSpotlightWeb.AdminLiveTest do
     test "can save edited interest with custom slug", %{conn: conn} do
       {:ok, interest} = Interests.create_interest(%{name: "Edit Me"})
 
-      {:ok, lv, _html} = live(conn, ~p"/admin/interests")
+      {:ok, lv, _html} = live(conn, ~p"/admins/interests")
 
       # Start edit
       lv
@@ -160,7 +160,7 @@ defmodule InterestSpotlightWeb.AdminLiveTest do
     test "can cancel editing", %{conn: conn} do
       {:ok, interest} = Interests.create_interest(%{name: "Edit Me"})
 
-      {:ok, lv, _html} = live(conn, ~p"/admin/interests")
+      {:ok, lv, _html} = live(conn, ~p"/admins/interests")
 
       # Start edit
       lv
@@ -180,7 +180,7 @@ defmodule InterestSpotlightWeb.AdminLiveTest do
     test "can delete an interest", %{conn: conn} do
       {:ok, interest} = Interests.create_interest(%{name: "Delete Me"})
 
-      {:ok, lv, _html} = live(conn, ~p"/admin/interests")
+      {:ok, lv, _html} = live(conn, ~p"/admins/interests")
 
       result =
         lv
@@ -197,7 +197,7 @@ defmodule InterestSpotlightWeb.AdminLiveTest do
         Interests.delete_interest(interest)
       end
 
-      {:ok, _lv, html} = live(conn, ~p"/admin/interests")
+      {:ok, _lv, html} = live(conn, ~p"/admins/interests")
 
       assert html =~ "No interests yet"
     end
@@ -206,13 +206,13 @@ defmodule InterestSpotlightWeb.AdminLiveTest do
       user = onboarded_user_fixture()
       conn = build_conn() |> log_in_user(user)
 
-      assert {:error, redirect} = live(conn, ~p"/admin/interests")
+      assert {:error, redirect} = live(conn, ~p"/admins/interests")
       assert {:redirect, %{to: path}} = redirect
-      assert path == ~p"/"
+      assert path == ~p"/admins/log-in"
     end
 
     test "updates new_interest state on change", %{conn: conn} do
-      {:ok, lv, _html} = live(conn, ~p"/admin/interests")
+      {:ok, lv, _html} = live(conn, ~p"/admins/interests")
 
       lv
       |> element("input[name='name']")
@@ -226,7 +226,7 @@ defmodule InterestSpotlightWeb.AdminLiveTest do
     test "updates edit fields state on change during editing", %{conn: conn} do
       {:ok, interest} = Interests.create_interest(%{name: "Edit Me"})
 
-      {:ok, lv, _html} = live(conn, ~p"/admin/interests")
+      {:ok, lv, _html} = live(conn, ~p"/admins/interests")
 
       # Start edit
       lv
@@ -254,7 +254,7 @@ defmodule InterestSpotlightWeb.AdminLiveTest do
       {:ok, interest} = Interests.create_interest(%{name: "Edit Me"})
       original_slug = interest.slug
 
-      {:ok, lv, _html} = live(conn, ~p"/admin/interests")
+      {:ok, lv, _html} = live(conn, ~p"/admins/interests")
 
       # Start edit
       lv

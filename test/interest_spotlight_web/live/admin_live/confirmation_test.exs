@@ -67,7 +67,7 @@ defmodule InterestSpotlightWeb.AdminLive.ConfirmationTest do
       assert Backoffice.get_admin!(admin.id).confirmed_at
       # we are logged in now
       assert get_session(conn, :admin_token)
-      assert redirected_to(conn) == ~p"/"
+      assert redirected_to(conn) == ~p"/admins/dashboard"
 
       # log out, new conn
       conn = build_conn()

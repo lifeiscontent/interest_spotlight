@@ -257,12 +257,7 @@ defmodule InterestSpotlightWeb.AdminAuth do
   end
 
   @doc "Returns the path to redirect to after log in."
-  # the admin was already logged in, redirect to settings
-  def signed_in_path(%Plug.Conn{assigns: %{current_scope: %Scope{admin: %Backoffice.Admin{}}}}) do
-    ~p"/admins/settings"
-  end
-
-  def signed_in_path(_), do: ~p"/"
+  def signed_in_path(_), do: ~p"/admins/dashboard"
 
   @doc """
   Plug for routes that require the admin to be authenticated.

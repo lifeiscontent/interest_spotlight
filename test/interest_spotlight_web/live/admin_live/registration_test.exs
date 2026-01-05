@@ -17,7 +17,7 @@ defmodule InterestSpotlightWeb.AdminLive.RegistrationTest do
         conn
         |> log_in_admin(admin_fixture())
         |> live(~p"/admins/register")
-        |> follow_redirect(conn, ~p"/")
+        |> follow_redirect(conn, ~p"/admins/dashboard")
 
       assert {:ok, _conn} = result
     end

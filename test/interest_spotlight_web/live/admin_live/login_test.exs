@@ -9,7 +9,7 @@ defmodule InterestSpotlightWeb.AdminLive.LoginTest do
       {:ok, _lv, html} = live(conn, ~p"/admins/log-in")
 
       assert html =~ "Log in"
-      assert html =~ "Register"
+      assert html =~ "Sign up"
       assert html =~ "Log in with email"
     end
   end
@@ -58,7 +58,7 @@ defmodule InterestSpotlightWeb.AdminLive.LoginTest do
 
       conn = submit_form(form, conn)
 
-      assert redirected_to(conn) == ~p"/"
+      assert redirected_to(conn) == ~p"/admins/dashboard"
     end
 
     test "redirects to login page with a flash error if credentials are invalid", %{

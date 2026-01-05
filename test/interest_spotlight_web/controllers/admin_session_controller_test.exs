@@ -18,10 +18,10 @@ defmodule InterestSpotlightWeb.AdminSessionControllerTest do
         })
 
       assert get_session(conn, :admin_token)
-      assert redirected_to(conn) == ~p"/"
+      assert redirected_to(conn) == ~p"/admins/dashboard"
 
-      # Now do a logged in request and assert on the menu
-      conn = get(conn, ~p"/")
+      # Now do a logged in request and assert on the admin dashboard
+      conn = get(conn, ~p"/admins/dashboard")
       response = html_response(conn, 200)
       assert response =~ admin.email
       assert response =~ ~p"/admins/settings"
@@ -41,7 +41,7 @@ defmodule InterestSpotlightWeb.AdminSessionControllerTest do
         })
 
       assert conn.resp_cookies["_interest_spotlight_web_admin_remember_me"]
-      assert redirected_to(conn) == ~p"/"
+      assert redirected_to(conn) == ~p"/admins/dashboard"
     end
 
     test "logs the admin in with return to", %{conn: conn, admin: admin} do
@@ -82,10 +82,10 @@ defmodule InterestSpotlightWeb.AdminSessionControllerTest do
         })
 
       assert get_session(conn, :admin_token)
-      assert redirected_to(conn) == ~p"/"
+      assert redirected_to(conn) == ~p"/admins/dashboard"
 
-      # Now do a logged in request and assert on the menu
-      conn = get(conn, ~p"/")
+      # Now do a logged in request and assert on the admin dashboard
+      conn = get(conn, ~p"/admins/dashboard")
       response = html_response(conn, 200)
       assert response =~ admin.email
       assert response =~ ~p"/admins/settings"
@@ -103,13 +103,13 @@ defmodule InterestSpotlightWeb.AdminSessionControllerTest do
         })
 
       assert get_session(conn, :admin_token)
-      assert redirected_to(conn) == ~p"/"
+      assert redirected_to(conn) == ~p"/admins/dashboard"
       assert Phoenix.Flash.get(conn.assigns.flash, :info) =~ "Admin confirmed successfully."
 
       assert Backoffice.get_admin!(admin.id).confirmed_at
 
-      # Now do a logged in request and assert on the menu
-      conn = get(conn, ~p"/")
+      # Now do a logged in request and assert on the admin dashboard
+      conn = get(conn, ~p"/admins/dashboard")
       response = html_response(conn, 200)
       assert response =~ admin.email
       assert response =~ ~p"/admins/settings"
