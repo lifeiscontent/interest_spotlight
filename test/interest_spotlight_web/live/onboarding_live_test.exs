@@ -228,9 +228,9 @@ defmodule InterestSpotlightWeb.OnboardingLiveTest do
           }
         })
         |> render_submit()
-        |> follow_redirect(conn, ~p"/dashboard")
+        |> follow_redirect(conn, ~p"/home")
 
-      assert html =~ "Dashboard"
+      assert html =~ "Home"
 
       # Verify profile was saved
       profile = Profiles.get_profile_by_user_id(user.id)

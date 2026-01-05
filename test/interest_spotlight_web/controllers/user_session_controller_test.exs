@@ -25,10 +25,10 @@ defmodule InterestSpotlightWeb.UserSessionControllerTest do
         })
 
       assert get_session(conn, :user_token)
-      assert redirected_to(conn) == ~p"/dashboard"
+      assert redirected_to(conn) == ~p"/home"
 
       # Non-onboarded user gets redirected to onboarding
-      conn = get(conn, ~p"/dashboard")
+      conn = get(conn, ~p"/home")
       assert redirected_to(conn) == ~p"/onboarding"
     end
 
@@ -41,10 +41,10 @@ defmodule InterestSpotlightWeb.UserSessionControllerTest do
         })
 
       assert get_session(conn, :user_token)
-      assert redirected_to(conn) == ~p"/dashboard"
+      assert redirected_to(conn) == ~p"/home"
 
       # Onboarded user can access dashboard
-      conn = get(conn, ~p"/dashboard")
+      conn = get(conn, ~p"/home")
       response = html_response(conn, 200)
       assert response =~ user.email
     end
@@ -62,7 +62,7 @@ defmodule InterestSpotlightWeb.UserSessionControllerTest do
         })
 
       assert conn.resp_cookies["_interest_spotlight_web_user_remember_me"]
-      assert redirected_to(conn) == ~p"/dashboard"
+      assert redirected_to(conn) == ~p"/home"
     end
 
     test "logs the user in with return to", %{conn: conn, onboarded_user: user} do
@@ -103,10 +103,10 @@ defmodule InterestSpotlightWeb.UserSessionControllerTest do
         })
 
       assert get_session(conn, :user_token)
-      assert redirected_to(conn) == ~p"/dashboard"
+      assert redirected_to(conn) == ~p"/home"
 
       # Now do a logged in request and assert on the menu
-      conn = get(conn, ~p"/dashboard")
+      conn = get(conn, ~p"/home")
       response = html_response(conn, 200)
       assert response =~ user.email
     end
@@ -125,13 +125,13 @@ defmodule InterestSpotlightWeb.UserSessionControllerTest do
         })
 
       assert get_session(conn, :user_token)
-      assert redirected_to(conn) == ~p"/dashboard"
+      assert redirected_to(conn) == ~p"/home"
       assert Phoenix.Flash.get(conn.assigns.flash, :info) =~ "User confirmed successfully."
 
       assert Accounts.get_user!(user.id).confirmed_at
 
       # New unconfirmed user needs to complete onboarding
-      conn = get(conn, ~p"/dashboard")
+      conn = get(conn, ~p"/home")
       assert redirected_to(conn) == ~p"/onboarding"
     end
 

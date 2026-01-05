@@ -40,14 +40,14 @@ defmodule InterestSpotlightWeb.Layouts do
       <%!-- Desktop Sidebar - hidden on mobile --%>
       <aside class="hidden md:flex md:flex-col md:w-64 md:border-r md:border-base-300 md:bg-base-100">
         <div class="p-4 border-b border-base-300">
-          <.link navigate={~p"/dashboard"} class="text-xl font-bold text-primary">
+          <.link navigate={~p"/home"} class="text-xl font-bold text-primary">
             INTERESTSPOTLIGHT
           </.link>
         </div>
         <nav class="flex-1 p-4">
           <ul class="menu space-y-1">
             <li>
-              <.link navigate={~p"/dashboard"} class="flex items-center gap-3">
+              <.link navigate={~p"/home"} class="flex items-center gap-3">
                 <.icon name="hero-home" class="size-5" />
                 <span>Home</span>
               </.link>
@@ -83,7 +83,7 @@ defmodule InterestSpotlightWeb.Layouts do
         <header class="sticky top-0 z-10 bg-base-100 border-b border-base-300">
           <div class="flex items-center justify-between px-4 h-14">
             <%!-- Logo - visible on mobile, hidden on desktop --%>
-            <.link navigate={~p"/dashboard"} class="text-lg font-bold text-primary md:hidden">
+            <.link navigate={~p"/home"} class="text-lg font-bold text-primary md:hidden">
               INTERESTSPOTLIGHT
             </.link>
             <%!-- Spacer for desktop --%>
@@ -156,7 +156,7 @@ defmodule InterestSpotlightWeb.Layouts do
         <%!-- Fixed Bottom Navigation - mobile only --%>
         <nav class="fixed bottom-0 left-0 right-0 bg-base-100 border-t border-base-300 md:hidden z-10">
           <div class="flex items-center justify-around h-16">
-            <.bottom_nav_item href={~p"/dashboard"} icon="hero-home" label="Home" />
+            <.bottom_nav_item href={~p"/home"} icon="hero-home" label="Home" />
             <.bottom_nav_item href="#" icon="hero-calendar" label="Calendar" />
             <.bottom_nav_item href={~p"/connections"} icon="hero-user-group" label="Connections" />
             <.bottom_nav_item href={~p"/profile"} icon="hero-user-circle" label="Profile" />

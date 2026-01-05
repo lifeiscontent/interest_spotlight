@@ -22,7 +22,7 @@ defmodule InterestSpotlightWeb.OnboardingLive.About do
     <div class="max-w-md mx-auto p-4">
       <div class="flex justify-between items-center mb-4">
         <span class="text-sm text-gray-600">Step 2/2</span>
-        <.link navigate={~p"/dashboard"} class="text-sm text-blue-600">Skip</.link>
+        <.link navigate={~p"/home"} class="text-sm text-blue-600">Skip</.link>
       </div>
 
       <div class="w-full bg-gray-200 h-1 mb-6">
@@ -122,7 +122,7 @@ defmodule InterestSpotlightWeb.OnboardingLive.About do
   def handle_event("save", %{"profile" => profile_params}, socket) do
     case Profiles.update_profile(socket.assigns.profile, profile_params) do
       {:ok, _profile} ->
-        {:noreply, push_navigate(socket, to: ~p"/dashboard")}
+        {:noreply, push_navigate(socket, to: ~p"/home")}
 
       {:error, changeset} ->
         {:noreply, assign_form(socket, changeset)}

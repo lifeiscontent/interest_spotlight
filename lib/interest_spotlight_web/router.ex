@@ -32,7 +32,7 @@ defmodule InterestSpotlightWeb.Router do
   scope "/", InterestSpotlightWeb do
     pipe_through :browser
 
-    get "/", PageController, :home
+    live "/", LandingLive, :index
     # Serve uploaded files from external filesystem
     get "/uploads/*path", UploadController, :show
   end
@@ -82,7 +82,7 @@ defmodule InterestSpotlightWeb.Router do
         {InterestSpotlightWeb.UserAuth, :require_authenticated},
         {InterestSpotlightWeb.UserAuth, :require_onboarded}
       ] do
-      live "/dashboard", DashboardLive.Index, :index
+      live "/home", HomeLive.Index, :index
       live "/profile", ProfileLive, :index
       live "/users/settings", UserLive.Settings, :edit
       live "/users/settings/confirm-email/:token", UserLive.Settings, :confirm_email

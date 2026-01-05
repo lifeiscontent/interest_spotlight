@@ -1,4 +1,4 @@
-defmodule InterestSpotlightWeb.DashboardLive.Index do
+defmodule InterestSpotlightWeb.HomeLive.Index do
   use InterestSpotlightWeb, :live_view
 
   @impl true
@@ -6,7 +6,7 @@ defmodule InterestSpotlightWeb.DashboardLive.Index do
     ~H"""
     <Layouts.app flash={@flash} current_scope={@current_scope}>
       <.header>
-        Dashboard
+        Home
         <:subtitle>Welcome back, {@current_scope.user.email}</:subtitle>
       </.header>
     </Layouts.app>

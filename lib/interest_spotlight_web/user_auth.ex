@@ -285,7 +285,7 @@ defmodule InterestSpotlightWeb.UserAuth do
   end
 
   @doc "Returns the path to redirect to after log in."
-  def signed_in_path(_), do: ~p"/dashboard"
+  def signed_in_path(_), do: ~p"/home"
 
   @doc """
   Plug for routes that require the user to be authenticated.
