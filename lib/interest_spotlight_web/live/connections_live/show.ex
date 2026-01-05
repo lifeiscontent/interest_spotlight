@@ -2,7 +2,6 @@ defmodule InterestSpotlightWeb.ConnectionsLive.Show do
   use InterestSpotlightWeb, :live_view
 
   alias InterestSpotlight.Accounts
-  alias InterestSpotlight.Accounts.User
   alias InterestSpotlight.Connections
   alias InterestSpotlight.Interests
   alias InterestSpotlight.Profiles
@@ -35,7 +34,7 @@ defmodule InterestSpotlightWeb.ConnectionsLive.Show do
 
       # Determine if the current user can view the full profile
       # Full profile is visible if: user's profile is public OR users are connected
-      can_view_profile = User.public_profile?(user) || connection_status == :connected
+      can_view_profile = Accounts.public_profile?(user) || connection_status == :connected
 
       {:ok,
        socket
@@ -128,7 +127,7 @@ defmodule InterestSpotlightWeb.ConnectionsLive.Show do
       {:ok, _} ->
         # Reload user to get latest profile_visibility and recalculate can_view_profile
         user = Accounts.get_user!(socket.assigns.user.id)
-        can_view_profile = User.public_profile?(user)
+        can_view_profile = Accounts.public_profile?(user)
 
         {:noreply,
          socket
@@ -204,7 +203,7 @@ defmodule InterestSpotlightWeb.ConnectionsLive.Show do
     # Reload user to get latest profile_visibility
     user = Accounts.get_user!(socket.assigns.user.id)
     # Recalculate can_view_profile since connection is removed
-    can_view_profile = User.public_profile?(user)
+    can_view_profile = Accounts.public_profile?(user)
 
     {:noreply,
      socket

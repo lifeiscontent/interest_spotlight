@@ -71,6 +71,12 @@ defmodule InterestSpotlight.Accounts do
     |> Repo.all()
   end
 
+  @doc """
+  Checks if the user's profile is public.
+  """
+  def public_profile?(%User{profile_visibility: "public"}), do: true
+  def public_profile?(_), do: false
+
   ## User registration
 
   @doc """
