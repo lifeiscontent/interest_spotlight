@@ -2,12 +2,11 @@ defmodule InterestSpotlightWeb.OnboardingLive.About do
   use InterestSpotlightWeb, :live_view
 
   alias InterestSpotlight.Profiles
-  alias InterestSpotlight.Profiles.Profile
 
   def mount(_params, _session, socket) do
     user = socket.assigns.current_scope.user
     profile = Profiles.get_or_create_profile(user.id)
-    changeset = Profile.changeset(profile, %{})
+    changeset = Profiles.change_profile(profile)
 
     {:ok,
      socket
@@ -113,7 +112,7 @@ defmodule InterestSpotlightWeb.OnboardingLive.About do
   def handle_event("validate", %{"profile" => profile_params}, socket) do
     changeset =
       socket.assigns.profile
-      |> Profile.changeset(profile_params)
+      |> Profiles.change_profile(profile_params)
       |> Map.put(:action, :validate)
 
     {:noreply, assign_form(socket, changeset)}

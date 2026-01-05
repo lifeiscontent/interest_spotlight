@@ -121,22 +121,23 @@ defmodule InterestSpotlightWeb.AdminLive.Interests do
   end
 
   def handle_event("add_interest", %{"name" => name}, socket) do
-    name = String.trim(name)
+    name
+    |> String.trim()
+    |> do_add_interest(socket)
+  end
 
-    if name != "" do
-      case Interests.create_interest(%{name: name}) do
-        {:ok, _interest} ->
-          {:noreply,
-           socket
-           |> assign(:interests, Interests.list_interests())
-           |> assign(:new_interest, "")}
+  defp do_add_interest("", socket), do: {:noreply, socket}
 
-        {:error, _changeset} ->
-          {:noreply,
-           put_flash(socket, :error, "Could not create interest. It may already exist.")}
-      end
-    else
-      {:noreply, socket}
+  defp do_add_interest(name, socket) do
+    case Interests.create_interest(%{name: name}) do
+      {:ok, _interest} ->
+        {:noreply,
+         socket
+         |> assign(:interests, Interests.list_interests())
+         |> assign(:new_interest, "")}
+
+      {:error, _changeset} ->
+        {:noreply, put_flash(socket, :error, "Could not create interest. It may already exist.")}
     end
   end
 
@@ -163,32 +164,32 @@ defmodule InterestSpotlightWeb.AdminLive.Interests do
   def handle_event("save_edit", %{"name" => name, "slug" => slug}, socket) do
     name = String.trim(name)
     slug = String.trim(slug)
+    do_save_edit(name, slug, socket)
+  end
 
-    if name != "" do
-      interest = Interests.get_interest!(socket.assigns.editing_id)
+  defp do_save_edit("", _slug, socket), do: {:noreply, socket}
 
-      attrs =
-        if slug == "" do
-          %{name: name}
-        else
-          %{name: name, slug: slug}
-        end
+  defp do_save_edit(name, slug, socket) do
+    interest = Interests.get_interest!(socket.assigns.editing_id)
 
-      case Interests.update_interest(interest, attrs) do
-        {:ok, _interest} ->
-          {:noreply,
-           socket
-           |> assign(:interests, Interests.list_interests())
-           |> assign(:editing_id, nil)
-           |> assign(:edit_name, "")
-           |> assign(:edit_slug, "")}
-
-        {:error, changeset} ->
-          errors = format_errors(changeset)
-          {:noreply, put_flash(socket, :error, "Could not update interest. #{errors}")}
+    attrs =
+      case slug do
+        "" -> %{name: name}
+        _ -> %{name: name, slug: slug}
       end
-    else
-      {:noreply, socket}
+
+    case Interests.update_interest(interest, attrs) do
+      {:ok, _interest} ->
+        {:noreply,
+         socket
+         |> assign(:interests, Interests.list_interests())
+         |> assign(:editing_id, nil)
+         |> assign(:edit_name, "")
+         |> assign(:edit_slug, "")}
+
+      {:error, changeset} ->
+        errors = format_errors(changeset)
+        {:noreply, put_flash(socket, :error, "Could not update interest. #{errors}")}
     end
   end
 

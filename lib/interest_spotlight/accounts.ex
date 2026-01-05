@@ -77,6 +77,17 @@ defmodule InterestSpotlight.Accounts do
   def public_profile?(%User{profile_visibility: "public"}), do: true
   def public_profile?(_), do: false
 
+  @doc """
+  Checks if the user has completed onboarding (has first_name, last_name, and location).
+  """
+  def onboarding_complete?(%User{first_name: first, last_name: last, location: loc})
+      when is_binary(first) and first != "" and
+             is_binary(last) and last != "" and
+             is_binary(loc) and loc != "",
+      do: true
+
+  def onboarding_complete?(_), do: false
+
   ## User registration
 
   @doc """

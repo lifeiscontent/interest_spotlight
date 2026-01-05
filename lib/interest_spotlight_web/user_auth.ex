@@ -6,7 +6,6 @@ defmodule InterestSpotlightWeb.UserAuth do
 
   alias InterestSpotlight.Accounts
   alias InterestSpotlight.Accounts.Scope
-  alias InterestSpotlight.Accounts.User
   alias InterestSpotlight.Interests
 
   # Make the remember me cookie valid for 14 days. This should match
@@ -260,7 +259,7 @@ defmodule InterestSpotlightWeb.UserAuth do
 
         {:halt, socket}
 
-      not User.onboarding_complete?(user) ->
+      not Accounts.onboarding_complete?(user) ->
         socket = Phoenix.LiveView.redirect(socket, to: ~p"/onboarding")
         {:halt, socket}
 
@@ -322,7 +321,7 @@ defmodule InterestSpotlightWeb.UserAuth do
         |> redirect(to: ~p"/users/log-in")
         |> halt()
 
-      not User.onboarding_complete?(user) ->
+      not Accounts.onboarding_complete?(user) ->
         conn
         |> redirect(to: ~p"/onboarding")
         |> halt()
