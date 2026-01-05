@@ -25,7 +25,7 @@ defmodule InterestSpotlightWeb.AdminAuthTest do
       conn = AdminAuth.log_in_admin(conn, admin)
       assert token = get_session(conn, :admin_token)
       assert get_session(conn, :live_socket_id) == "admins_sessions:#{Base.url_encode64(token)}"
-      assert redirected_to(conn) == ~p"/admins/dashboard"
+      assert redirected_to(conn) == ~p"/admins/live-dashboard/admin"
       assert Backoffice.get_admin_by_session_token(token)
     end
 
@@ -80,7 +80,7 @@ defmodule InterestSpotlightWeb.AdminAuthTest do
         |> assign(:current_scope, Scope.for_admin(admin))
         |> AdminAuth.log_in_admin(admin)
 
-      assert redirected_to(conn) == ~p"/admins/dashboard"
+      assert redirected_to(conn) == ~p"/admins/live-dashboard/admin"
     end
 
     test "writes a cookie if remember_me was set in previous session", %{conn: conn, admin: admin} do

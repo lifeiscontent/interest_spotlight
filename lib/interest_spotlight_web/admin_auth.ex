@@ -257,7 +257,7 @@ defmodule InterestSpotlightWeb.AdminAuth do
   end
 
   @doc "Returns the path to redirect to after log in."
-  def signed_in_path(_), do: ~p"/admins/dashboard"
+  def signed_in_path(_), do: ~p"/admins/live-dashboard/admin"
 
   @doc """
   Plug for routes that require the admin to be authenticated.
