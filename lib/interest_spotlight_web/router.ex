@@ -12,8 +12,17 @@ defmodule InterestSpotlightWeb.Router do
     plug :put_root_layout, html: {InterestSpotlightWeb.Layouts, :root}
     plug :protect_from_forgery
     plug :put_secure_browser_headers
-    plug :fetch_current_scope_for_admin
     plug :fetch_current_scope_for_user
+  end
+
+  pipeline :admin_browser do
+    plug :accepts, ["html"]
+    plug :fetch_session
+    plug :fetch_live_flash
+    plug :put_root_layout, html: {InterestSpotlightWeb.Layouts, :root}
+    plug :protect_from_forgery
+    plug :put_secure_browser_headers
+    plug :fetch_current_scope_for_admin
   end
 
   pipeline :api do
@@ -99,10 +108,10 @@ defmodule InterestSpotlightWeb.Router do
     delete "/users/log-out", UserSessionController, :delete
   end
 
-  ## Authentication routes
+  ## Admin authentication routes
 
   scope "/", InterestSpotlightWeb do
-    pipe_through [:browser, :require_authenticated_admin]
+    pipe_through [:admin_browser, :require_authenticated_admin]
 
     live_session :require_authenticated_admin,
       on_mount: [{InterestSpotlightWeb.AdminAuth, :require_authenticated}] do
@@ -116,7 +125,7 @@ defmodule InterestSpotlightWeb.Router do
   end
 
   scope "/", InterestSpotlightWeb do
-    pipe_through [:browser]
+    pipe_through [:admin_browser]
 
     live_session :current_admin,
       on_mount: [{InterestSpotlightWeb.AdminAuth, :mount_current_scope}] do
