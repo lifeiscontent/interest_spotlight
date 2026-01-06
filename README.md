@@ -13,10 +13,22 @@
    mkdir -p /path/to/your/test/uploads
    ```
 
+   For example:
+   ```bash
+   mkdir -p /home/johndoe/Documents/partitions/interest_spotlight
+   mkdir -p /home/johndoe/Documents/partitions/interest_spotlight/tests
+   ```
+
 3. Edit `.env` and set the paths to your created directories:
    ```bash
    export UPLOADS_DIRECTORY="/path/to/your/uploads"
    export UPLOADS_DIRECTORY_TEST="/path/to/your/test/uploads"
+   ```
+
+   For example:
+   ```bash
+   export UPLOADS_DIRECTORY="/home/johndoe/Documents/partitions/interest_spotlight"
+   export UPLOADS_DIRECTORY_TEST="/home/johndoe/Documents/partitions/interest_spotlight/tests"
    ```
 
 4. Load environment variables:
