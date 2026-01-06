@@ -6,6 +6,7 @@ defmodule InterestSpotlightWeb.ConnectionsLive.ShowTest do
   import InterestSpotlight.ConnectionsFixtures
 
   alias InterestSpotlight.Accounts
+  alias InterestSpotlight.Accounts.Scope
   alias InterestSpotlight.Connections
   alias InterestSpotlight.Profiles
 
@@ -230,7 +231,9 @@ defmodule InterestSpotlightWeb.ConnectionsLive.ShowTest do
     } do
       other_user = onboarded_user_fixture()
       # Make the other user's profile private
-      {:ok, _} = Accounts.update_user_profile(other_user, %{profile_visibility: "private"})
+      {:ok, _} =
+        Accounts.update_user_profile(Scope.for_user(other_user), %{profile_visibility: "private"})
+
       connection_request_fixture(other_user.id, user.id)
 
       {:ok, lv, html} = live(conn, ~p"/connections/#{other_user.id}")
@@ -347,7 +350,9 @@ defmodule InterestSpotlightWeb.ConnectionsLive.ShowTest do
     } do
       other_user = onboarded_user_fixture()
       # Make the other user's profile private
-      {:ok, _} = Accounts.update_user_profile(other_user, %{profile_visibility: "private"})
+      {:ok, _} =
+        Accounts.update_user_profile(Scope.for_user(other_user), %{profile_visibility: "private"})
+
       accepted_connection_fixture(user.id, other_user.id)
 
       {:ok, lv, html} = live(conn, ~p"/connections/#{other_user.id}")
@@ -371,7 +376,8 @@ defmodule InterestSpotlightWeb.ConnectionsLive.ShowTest do
     test "hides interests when not connected and profile is private", %{conn: conn} do
       other_user = onboarded_user_fixture()
       # Make the other user's profile private
-      {:ok, _} = Accounts.update_user_profile(other_user, %{profile_visibility: "private"})
+      {:ok, _} =
+        Accounts.update_user_profile(Scope.for_user(other_user), %{profile_visibility: "private"})
 
       {:ok, _lv, html} = live(conn, ~p"/connections/#{other_user.id}")
 
@@ -392,7 +398,8 @@ defmodule InterestSpotlightWeb.ConnectionsLive.ShowTest do
     test "hides bio when not connected and profile is private", %{conn: conn} do
       other_user = onboarded_user_fixture()
       # Make the other user's profile private
-      {:ok, _} = Accounts.update_user_profile(other_user, %{profile_visibility: "private"})
+      {:ok, _} =
+        Accounts.update_user_profile(Scope.for_user(other_user), %{profile_visibility: "private"})
 
       # Add bio to other user's profile
       {:ok, _profile} = Profiles.create_profile(other_user.id, %{bio: "This is my bio"})
@@ -407,7 +414,8 @@ defmodule InterestSpotlightWeb.ConnectionsLive.ShowTest do
     test "hides social links when not connected and profile is private", %{conn: conn} do
       other_user = onboarded_user_fixture()
       # Make the other user's profile private
-      {:ok, _} = Accounts.update_user_profile(other_user, %{profile_visibility: "private"})
+      {:ok, _} =
+        Accounts.update_user_profile(Scope.for_user(other_user), %{profile_visibility: "private"})
 
       # Add social links to other user's profile
       {:ok, _profile} =
@@ -426,7 +434,9 @@ defmodule InterestSpotlightWeb.ConnectionsLive.ShowTest do
     test "shows interests when connected to private profile", %{conn: conn, user: user} do
       other_user = onboarded_user_fixture()
       # Make the other user's profile private
-      {:ok, _} = Accounts.update_user_profile(other_user, %{profile_visibility: "private"})
+      {:ok, _} =
+        Accounts.update_user_profile(Scope.for_user(other_user), %{profile_visibility: "private"})
+
       accepted_connection_fixture(user.id, other_user.id)
 
       {:ok, _lv, html} = live(conn, ~p"/connections/#{other_user.id}")
@@ -486,7 +496,7 @@ defmodule InterestSpotlightWeb.ConnectionsLive.ShowTest do
 
       # Add profile photo
       {:ok, updated_user} =
-        InterestSpotlight.Accounts.update_user_profile(other_user, %{
+        InterestSpotlight.Accounts.update_user_profile(Scope.for_user(other_user), %{
           profile_photo: "test/photo.jpg"
         })
 
@@ -558,7 +568,9 @@ defmodule InterestSpotlightWeb.ConnectionsLive.ShowTest do
     } do
       other_user = onboarded_user_fixture()
       # Make the other user's profile private
-      {:ok, _} = Accounts.update_user_profile(other_user, %{profile_visibility: "private"})
+      {:ok, _} =
+        Accounts.update_user_profile(Scope.for_user(other_user), %{profile_visibility: "private"})
+
       connection = accepted_connection_fixture(user.id, other_user.id)
 
       {:ok, lv, html} = live(conn, ~p"/connections/#{other_user.id}")

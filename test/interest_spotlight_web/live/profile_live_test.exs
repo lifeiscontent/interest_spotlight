@@ -5,6 +5,7 @@ defmodule InterestSpotlightWeb.ProfileLiveTest do
   import InterestSpotlight.AccountsFixtures
 
   alias InterestSpotlight.Accounts
+  alias InterestSpotlight.Accounts.Scope
 
   describe "Profile page" do
     setup :register_and_log_in_onboarded_user
@@ -43,7 +44,9 @@ defmodule InterestSpotlightWeb.ProfileLiveTest do
 
     test "shows profile photo when present", %{conn: conn, user: user} do
       photo_path = "#{user.id}/profile_photo/#{user.id}.jpg"
-      {:ok, _user_with_photo} = Accounts.update_user_profile(user, %{profile_photo: photo_path})
+
+      {:ok, _user_with_photo} =
+        Accounts.update_user_profile(Scope.for_user(user), %{profile_photo: photo_path})
 
       {:ok, _lv, html} = live(conn, ~p"/profile")
 
@@ -52,7 +55,7 @@ defmodule InterestSpotlightWeb.ProfileLiveTest do
 
     test "shows delete button when profile photo exists", %{conn: conn, user: user} do
       {:ok, _user_with_photo} =
-        Accounts.update_user_profile(user, %{profile_photo: "1/photo.jpg"})
+        Accounts.update_user_profile(Scope.for_user(user), %{profile_photo: "1/photo.jpg"})
 
       {:ok, _lv, html} = live(conn, ~p"/profile")
 
@@ -103,7 +106,7 @@ defmodule InterestSpotlightWeb.ProfileLiveTest do
       user = onboarded_user_fixture()
 
       {:ok, user_with_photo} =
-        Accounts.update_user_profile(user, %{profile_photo: "test/photo.jpg"})
+        Accounts.update_user_profile(Scope.for_user(user), %{profile_photo: "test/photo.jpg"})
 
       %{conn: log_in_user(conn, user_with_photo), user: user_with_photo}
     end

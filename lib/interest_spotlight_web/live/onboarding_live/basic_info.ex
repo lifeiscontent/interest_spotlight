@@ -5,7 +5,7 @@ defmodule InterestSpotlightWeb.OnboardingLive.BasicInfo do
 
   def mount(_params, _session, socket) do
     user = socket.assigns.current_scope.user
-    changeset = Accounts.change_user_onboarding(user)
+    changeset = Accounts.change_user_onboarding(socket.assigns.current_scope)
 
     {:ok,
      socket
@@ -49,7 +49,7 @@ defmodule InterestSpotlightWeb.OnboardingLive.BasicInfo do
 
   def handle_event("validate", %{"user" => user_params}, socket) do
     changeset =
-      socket.assigns.user
+      socket.assigns.current_scope
       |> Accounts.change_user_onboarding(user_params)
       |> Map.put(:action, :validate)
 
@@ -57,7 +57,7 @@ defmodule InterestSpotlightWeb.OnboardingLive.BasicInfo do
   end
 
   def handle_event("save", %{"user" => user_params}, socket) do
-    case Accounts.update_user_onboarding(socket.assigns.user, user_params) do
+    case Accounts.update_user_onboarding(socket.assigns.current_scope, user_params) do
       {:ok, user} ->
         {:noreply,
          socket

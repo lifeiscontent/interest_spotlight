@@ -397,13 +397,13 @@ defmodule InterestSpotlight.AccountsTest do
 
   describe "change_user_profile/2" do
     test "returns a user changeset" do
-      user = user_fixture()
-      assert %Ecto.Changeset{} = Accounts.change_user_profile(user)
+      scope = user_scope_fixture()
+      assert %Ecto.Changeset{} = Accounts.change_user_profile(scope)
     end
 
     test "allows profile_photo to be set" do
-      user = user_fixture()
-      changeset = Accounts.change_user_profile(user, %{profile_photo: "1/profile_photo/1.jpg"})
+      scope = user_scope_fixture()
+      changeset = Accounts.change_user_profile(scope, %{profile_photo: "1/profile_photo/1.jpg"})
       assert changeset.valid?
       assert Ecto.Changeset.get_change(changeset, :profile_photo) == "1/profile_photo/1.jpg"
     end
@@ -411,35 +411,38 @@ defmodule InterestSpotlight.AccountsTest do
 
   describe "update_user_profile/2" do
     setup do
-      %{user: user_fixture()}
+      scope = user_scope_fixture()
+      %{scope: scope, user: scope.user}
     end
 
-    test "updates the user profile_photo", %{user: user} do
+    test "updates the user profile_photo", %{scope: scope, user: user} do
       photo_path = "#{user.id}/profile_photo/#{user.id}.jpg"
 
       assert {:ok, updated_user} =
-               Accounts.update_user_profile(user, %{profile_photo: photo_path})
+               Accounts.update_user_profile(scope, %{profile_photo: photo_path})
 
       assert updated_user.profile_photo == photo_path
     end
 
-    test "can set profile_photo to nil", %{user: user} do
+    test "can set profile_photo to nil", %{scope: scope} do
       # First set a photo
       {:ok, user_with_photo} =
-        Accounts.update_user_profile(user, %{profile_photo: "1/profile_photo/1.jpg"})
+        Accounts.update_user_profile(scope, %{profile_photo: "1/profile_photo/1.jpg"})
 
       assert user_with_photo.profile_photo == "1/profile_photo/1.jpg"
 
-      # Then remove it
+      # Then remove it - need to create new scope with updated user
+      scope_with_photo = %{scope | user: user_with_photo}
+
       {:ok, user_without_photo} =
-        Accounts.update_user_profile(user_with_photo, %{profile_photo: nil})
+        Accounts.update_user_profile(scope_with_photo, %{profile_photo: nil})
 
       assert is_nil(user_without_photo.profile_photo)
     end
 
-    test "persists the profile_photo in the database", %{user: user} do
+    test "persists the profile_photo in the database", %{scope: scope, user: user} do
       photo_path = "#{user.id}/profile_photo/test.png"
-      {:ok, _updated_user} = Accounts.update_user_profile(user, %{profile_photo: photo_path})
+      {:ok, _updated_user} = Accounts.update_user_profile(scope, %{profile_photo: photo_path})
 
       # Fetch fresh from database
       db_user = Accounts.get_user!(user.id)

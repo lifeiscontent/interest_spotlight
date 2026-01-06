@@ -5,6 +5,7 @@ defmodule InterestSpotlightWeb.OnboardingLiveTest do
   import InterestSpotlight.AccountsFixtures
 
   alias InterestSpotlight.Accounts
+  alias InterestSpotlight.Accounts.Scope
   alias InterestSpotlight.Interests
   alias InterestSpotlight.Profiles
 
@@ -70,7 +71,7 @@ defmodule InterestSpotlightWeb.OnboardingLiveTest do
       user = user_fixture()
 
       {:ok, user} =
-        Accounts.update_user_onboarding(user, %{
+        Accounts.update_user_onboarding(Scope.for_user(user), %{
           first_name: "Test",
           last_name: "User",
           location: "Test City"
@@ -163,7 +164,7 @@ defmodule InterestSpotlightWeb.OnboardingLiveTest do
       user = user_fixture()
 
       {:ok, user} =
-        Accounts.update_user_onboarding(user, %{
+        Accounts.update_user_onboarding(Scope.for_user(user), %{
           first_name: "Test",
           last_name: "User",
           location: "Test City"

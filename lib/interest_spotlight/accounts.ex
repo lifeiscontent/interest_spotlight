@@ -6,7 +6,7 @@ defmodule InterestSpotlight.Accounts do
   import Ecto.Query, warn: false
   alias InterestSpotlight.Repo
 
-  alias InterestSpotlight.Accounts.{User, UserToken, UserNotifier}
+  alias InterestSpotlight.Accounts.{Scope, User, UserToken, UserNotifier}
 
   ## Database getters
 
@@ -323,11 +323,11 @@ defmodule InterestSpotlight.Accounts do
 
   ## Examples
 
-      iex> change_user_profile(user)
+      iex> change_user_profile(scope)
       %Ecto.Changeset{data: %User{}}
 
   """
-  def change_user_profile(user, attrs \\ %{}) do
+  def change_user_profile(%Scope{user: user}, attrs \\ %{}) do
     User.profile_changeset(user, attrs)
   end
 
@@ -336,14 +336,14 @@ defmodule InterestSpotlight.Accounts do
 
   ## Examples
 
-      iex> update_user_profile(user, %{profile_photo: "path/to/photo.jpg"})
+      iex> update_user_profile(scope, %{profile_photo: "path/to/photo.jpg"})
       {:ok, %User{}}
 
-      iex> update_user_profile(user, %{invalid: "data"})
+      iex> update_user_profile(scope, %{invalid: "data"})
       {:error, %Ecto.Changeset{}}
 
   """
-  def update_user_profile(%User{} = user, attrs) do
+  def update_user_profile(%Scope{user: user}, attrs) do
     user
     |> User.profile_changeset(attrs)
     |> Repo.update()
@@ -352,14 +352,14 @@ defmodule InterestSpotlight.Accounts do
   @doc """
   Returns an `%Ecto.Changeset{}` for changing the user onboarding info.
   """
-  def change_user_onboarding(user, attrs \\ %{}) do
+  def change_user_onboarding(%Scope{user: user}, attrs \\ %{}) do
     User.onboarding_changeset(user, attrs)
   end
 
   @doc """
   Updates the user onboarding info (first_name, last_name, location).
   """
-  def update_user_onboarding(%User{} = user, attrs) do
+  def update_user_onboarding(%Scope{user: user}, attrs) do
     user
     |> User.onboarding_changeset(attrs)
     |> Repo.update()

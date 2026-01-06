@@ -190,7 +190,9 @@ defmodule InterestSpotlightWeb.ProfileLive do
     user = socket.assigns.user
     new_visibility = if user.profile_visibility == "public", do: "private", else: "public"
 
-    case Accounts.update_user_profile(user, %{profile_visibility: new_visibility}) do
+    case Accounts.update_user_profile(socket.assigns.current_scope, %{
+           profile_visibility: new_visibility
+         }) do
       {:ok, updated_user} ->
         {:noreply,
          socket
@@ -237,7 +239,9 @@ defmodule InterestSpotlightWeb.ProfileLive do
     case uploaded_files do
       [relative_path | _] ->
         # Update user with new photo path (relative to uploads_dir)
-        case Accounts.update_user_profile(user, %{profile_photo: relative_path}) do
+        case Accounts.update_user_profile(socket.assigns.current_scope, %{
+               profile_photo: relative_path
+             }) do
           {:ok, updated_user} ->
             {:noreply,
              socket
@@ -263,7 +267,7 @@ defmodule InterestSpotlightWeb.ProfileLive do
       File.rm(file_path)
 
       # Update user
-      case Accounts.update_user_profile(user, %{profile_photo: nil}) do
+      case Accounts.update_user_profile(socket.assigns.current_scope, %{profile_photo: nil}) do
         {:ok, updated_user} ->
           {:noreply,
            socket

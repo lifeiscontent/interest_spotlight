@@ -59,7 +59,7 @@ defmodule InterestSpotlight.AccountsFixtures do
   def complete_onboarding(user) do
     # Add profile info
     {:ok, user} =
-      Accounts.update_user_onboarding(user, %{
+      Accounts.update_user_onboarding(Scope.for_user(user), %{
         first_name: "Test",
         last_name: "User",
         location: "Test City"
