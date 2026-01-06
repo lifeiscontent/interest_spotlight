@@ -77,10 +77,17 @@ Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
 
 ## Environment Variables
 
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `UPLOADS_DIRECTORY` | Directory for storing user uploads (profile photos). Must exist and be writable. | Yes (dev/prod) |
-| `UPLOADS_DIRECTORY_TEST` | Directory for storing test uploads. Must exist and be writable. | Yes (test) |
+```
++------------------------+------------------------------------------------------------------+------------+
+| Variable               | Description                                                      | Required   |
++------------------------+------------------------------------------------------------------+------------+
+| UPLOADS_DIRECTORY      | Directory for storing user uploads (profile photos).             | Yes        |
+|                        | Must exist and be writable.                                      | (dev/prod) |
++------------------------+------------------------------------------------------------------+------------+
+| UPLOADS_DIRECTORY_TEST | Directory for storing test uploads.                              | Yes        |
+|                        | Must exist and be writable.                                      | (test)     |
++------------------------+------------------------------------------------------------------+------------+
+```
 
 ## Running Tests
 
