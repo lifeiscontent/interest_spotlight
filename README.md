@@ -1,5 +1,32 @@
 # InterestSpotlight
 
+## Architecture Overview
+
+```
+                    +---------------------+
+                    |    Phoenix Web App  |
+                    |     (LiveView)      |
+                    +----------+----------+
+                               |
+              +----------------+----------------+
+              |                                 |
+              v                                 v
+    +-------------------+           +------------------------+
+    |    PostgreSQL     |           |   External Filesystem  |
+    |    Database       |           |      (Uploads)         |
+    +-------------------+           +------------------------+
+    |                   |           |                        |
+    | - Users           |           | /uploads/              |
+    | - Interests       |           |   +-- profile_photos/  |
+    | - Sessions        |           |   +-- user_files/      |
+    | - Profiles        |           |                        |
+    +-------------------+           +------------------------+
+```
+
+The Phoenix web app connects to two external storage systems:
+- **PostgreSQL Database** — Stores structured data (users, interests, sessions)
+- **External Filesystem** — Stores user uploads (profile photos, files) outside the app directory
+
 ## Setup
 
 1. Copy `.env.example` to `.env`:
