@@ -37,7 +37,8 @@ defmodule InterestSpotlightWeb.ConnCase do
   end
 
   @doc """
-  Setup helper that registers and logs in users.
+  Setup helper that registers and logs in users (without onboarding).
+  Use this for testing the onboarding flow itself.
 
       setup :register_and_log_in_user
 
@@ -57,6 +58,27 @@ defmodule InterestSpotlightWeb.ConnCase do
   end
 
   @doc """
+  Setup helper that registers and logs in an onboarded user.
+  Use this for tests that require a fully onboarded regular user.
+
+      setup :register_and_log_in_onboarded_user
+
+  It stores an updated connection and a registered user in the
+  test context.
+  """
+  def register_and_log_in_onboarded_user(%{conn: conn} = context) do
+    user = InterestSpotlight.AccountsFixtures.onboarded_user_fixture()
+    scope = InterestSpotlight.Accounts.Scope.for_user(user)
+
+    opts =
+      context
+      |> Map.take([:token_authenticated_at])
+      |> Enum.into([])
+
+    %{conn: log_in_user(conn, user, opts), user: user, scope: scope}
+  end
+
+  @doc """
   Logs the given `user` into the `conn`.
 
   It returns an updated `conn`.
@@ -64,16 +86,57 @@ defmodule InterestSpotlightWeb.ConnCase do
   def log_in_user(conn, user, opts \\ []) do
     token = InterestSpotlight.Accounts.generate_user_session_token(user)
 
-    maybe_set_token_authenticated_at(token, opts[:token_authenticated_at])
+    maybe_set_user_token_authenticated_at(token, opts[:token_authenticated_at])
 
     conn
     |> Phoenix.ConnTest.init_test_session(%{})
     |> Plug.Conn.put_session(:user_token, token)
   end
 
-  defp maybe_set_token_authenticated_at(_token, nil), do: nil
+  defp maybe_set_user_token_authenticated_at(_token, nil), do: nil
 
-  defp maybe_set_token_authenticated_at(token, authenticated_at) do
+  defp maybe_set_user_token_authenticated_at(token, authenticated_at) do
     InterestSpotlight.AccountsFixtures.override_token_authenticated_at(token, authenticated_at)
+  end
+
+  @doc """
+  Setup helper that registers and logs in admins.
+
+      setup :register_and_log_in_admin
+
+  It stores an updated connection and a registered admin in the
+  test context.
+  """
+  def register_and_log_in_admin(%{conn: conn} = context) do
+    admin = InterestSpotlight.BackofficeFixtures.admin_fixture()
+    scope = InterestSpotlight.Backoffice.Scope.for_admin(admin)
+
+    opts =
+      context
+      |> Map.take([:token_authenticated_at])
+      |> Enum.into([])
+
+    %{conn: log_in_admin(conn, admin, opts), admin: admin, scope: scope}
+  end
+
+  @doc """
+  Logs the given `admin` into the `conn`.
+
+  It returns an updated `conn`.
+  """
+  def log_in_admin(conn, admin, opts \\ []) do
+    token = InterestSpotlight.Backoffice.generate_admin_session_token(admin)
+
+    maybe_set_admin_token_authenticated_at(token, opts[:token_authenticated_at])
+
+    conn
+    |> Phoenix.ConnTest.init_test_session(%{})
+    |> Plug.Conn.put_session(:admin_token, token)
+  end
+
+  defp maybe_set_admin_token_authenticated_at(_token, nil), do: nil
+
+  defp maybe_set_admin_token_authenticated_at(token, authenticated_at) do
+    InterestSpotlight.BackofficeFixtures.override_token_authenticated_at(token, authenticated_at)
   end
 end

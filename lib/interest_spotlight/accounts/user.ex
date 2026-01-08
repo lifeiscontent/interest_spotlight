@@ -8,9 +8,60 @@ defmodule InterestSpotlight.Accounts.User do
     field :hashed_password, :string, redact: true
     field :confirmed_at, :utc_datetime
     field :authenticated_at, :utc_datetime, virtual: true
+    field :profile_photo, :string
+    field :first_name, :string
+    field :last_name, :string
+    field :location, :string
+    field :profile_visibility, :string, default: "public"
+
+    has_one :profile, InterestSpotlight.Profiles.Profile
+    many_to_many :interests, InterestSpotlight.Interests.Interest, join_through: "user_interests"
+
+    has_many :sent_connection_requests, InterestSpotlight.Connections.Connection,
+      foreign_key: :requester_id
+
+    has_many :received_connection_requests, InterestSpotlight.Connections.Connection,
+      foreign_key: :receiver_id
 
     timestamps(type: :utc_datetime)
   end
+
+  @doc """
+  A user changeset for updating profile information.
+  """
+  def profile_changeset(user, attrs) do
+    user
+    |> cast(attrs, [:profile_photo, :first_name, :last_name, :location, :profile_visibility])
+    |> validate_inclusion(:profile_visibility, ["public", "private"])
+  end
+
+  @doc """
+  Checks if user profile is public.
+  """
+  def public_profile?(%__MODULE__{profile_visibility: "public"}), do: true
+  def public_profile?(_), do: false
+
+  @doc """
+  A user changeset for the onboarding step (basic info).
+  """
+  def onboarding_changeset(user, attrs) do
+    user
+    |> cast(attrs, [:first_name, :last_name, :location])
+    |> validate_required([:first_name, :last_name, :location])
+    |> validate_length(:first_name, min: 1, max: 100)
+    |> validate_length(:last_name, min: 1, max: 100)
+    |> validate_length(:location, min: 1, max: 255)
+  end
+
+  @doc """
+  Checks if basic onboarding info is complete.
+  """
+  def onboarding_complete?(%__MODULE__{first_name: first, last_name: last, location: loc})
+      when is_binary(first) and is_binary(last) and is_binary(loc) do
+    String.trim(first) != "" and String.trim(last) != "" and String.trim(loc) != ""
+  end
+
+  def onboarding_complete?(_), do: false
 
   @doc """
   A user changeset for registering or changing the email.

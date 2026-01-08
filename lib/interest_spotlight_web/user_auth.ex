@@ -6,6 +6,7 @@ defmodule InterestSpotlightWeb.UserAuth do
 
   alias InterestSpotlight.Accounts
   alias InterestSpotlight.Accounts.Scope
+  alias InterestSpotlight.Interests
 
   # Make the remember me cookie valid for 14 days. This should match
   # the session validity setting in UserToken.
@@ -245,6 +246,32 @@ defmodule InterestSpotlightWeb.UserAuth do
     end
   end
 
+  def on_mount(:require_onboarded, _params, session, socket) do
+    socket = mount_current_scope(socket, session)
+    user = socket.assigns.current_scope && socket.assigns.current_scope.user
+
+    cond do
+      is_nil(user) ->
+        socket =
+          socket
+          |> Phoenix.LiveView.put_flash(:error, "You must log in to access this page.")
+          |> Phoenix.LiveView.redirect(to: ~p"/users/log-in")
+
+        {:halt, socket}
+
+      not Accounts.onboarding_complete?(user) ->
+        socket = Phoenix.LiveView.redirect(socket, to: ~p"/onboarding")
+        {:halt, socket}
+
+      not Interests.user_has_minimum_interests?(user.id, 3) ->
+        socket = Phoenix.LiveView.redirect(socket, to: ~p"/onboarding/interests")
+        {:halt, socket}
+
+      true ->
+        {:cont, socket}
+    end
+  end
+
   defp mount_current_scope(socket, session) do
     Phoenix.Component.assign_new(socket, :current_scope, fn ->
       {user, _} =
@@ -257,12 +284,7 @@ defmodule InterestSpotlightWeb.UserAuth do
   end
 
   @doc "Returns the path to redirect to after log in."
-  # the user was already logged in, redirect to settings
-  def signed_in_path(%Plug.Conn{assigns: %{current_scope: %Scope{user: %Accounts.User{}}}}) do
-    ~p"/users/settings"
-  end
-
-  def signed_in_path(_), do: ~p"/"
+  def signed_in_path(_), do: ~p"/home"
 
   @doc """
   Plug for routes that require the user to be authenticated.
@@ -284,4 +306,33 @@ defmodule InterestSpotlightWeb.UserAuth do
   end
 
   defp maybe_store_return_to(conn), do: conn
+
+  @doc """
+  Plug for routes that require the user to have completed onboarding.
+  Checks: first_name, last_name, location filled + at least 3 interests.
+  """
+  def require_onboarded(conn, _opts) do
+    user = conn.assigns.current_scope && conn.assigns.current_scope.user
+
+    cond do
+      is_nil(user) ->
+        conn
+        |> put_flash(:error, "You must log in to access this page.")
+        |> redirect(to: ~p"/users/log-in")
+        |> halt()
+
+      not Accounts.onboarding_complete?(user) ->
+        conn
+        |> redirect(to: ~p"/onboarding")
+        |> halt()
+
+      not Interests.user_has_minimum_interests?(user.id, 3) ->
+        conn
+        |> redirect(to: ~p"/onboarding/interests")
+        |> halt()
+
+      true ->
+        conn
+    end
+  end
 end

@@ -5,11 +5,18 @@ defmodule InterestSpotlightWeb.UserSessionControllerTest do
   alias InterestSpotlight.Accounts
 
   setup do
-    %{unconfirmed_user: unconfirmed_user_fixture(), user: user_fixture()}
+    %{
+      unconfirmed_user: unconfirmed_user_fixture(),
+      user: user_fixture(),
+      onboarded_user: onboarded_user_fixture()
+    }
   end
 
   describe "POST /users/log-in - email and password" do
-    test "logs the user in", %{conn: conn, user: user} do
+    test "logs the user in and redirects to onboarding for non-onboarded user", %{
+      conn: conn,
+      user: user
+    } do
       user = set_password(user)
 
       conn =
@@ -18,17 +25,31 @@ defmodule InterestSpotlightWeb.UserSessionControllerTest do
         })
 
       assert get_session(conn, :user_token)
-      assert redirected_to(conn) == ~p"/"
+      assert redirected_to(conn) == ~p"/home"
 
-      # Now do a logged in request and assert on the menu
-      conn = get(conn, ~p"/")
-      response = html_response(conn, 200)
-      assert response =~ user.email
-      assert response =~ ~p"/users/settings"
-      assert response =~ ~p"/users/log-out"
+      # Non-onboarded user gets redirected to onboarding
+      conn = get(conn, ~p"/home")
+      assert redirected_to(conn) == ~p"/onboarding"
     end
 
-    test "logs the user in with remember me", %{conn: conn, user: user} do
+    test "logs the onboarded user in and shows dashboard", %{conn: conn, onboarded_user: user} do
+      user = set_password(user)
+
+      conn =
+        post(conn, ~p"/users/log-in", %{
+          "user" => %{"email" => user.email, "password" => valid_user_password()}
+        })
+
+      assert get_session(conn, :user_token)
+      assert redirected_to(conn) == ~p"/home"
+
+      # Onboarded user can access dashboard
+      conn = get(conn, ~p"/home")
+      response = html_response(conn, 200)
+      assert response =~ user.email
+    end
+
+    test "logs the user in with remember me", %{conn: conn, onboarded_user: user} do
       user = set_password(user)
 
       conn =
@@ -41,10 +62,10 @@ defmodule InterestSpotlightWeb.UserSessionControllerTest do
         })
 
       assert conn.resp_cookies["_interest_spotlight_web_user_remember_me"]
-      assert redirected_to(conn) == ~p"/"
+      assert redirected_to(conn) == ~p"/home"
     end
 
-    test "logs the user in with return to", %{conn: conn, user: user} do
+    test "logs the user in with return to", %{conn: conn, onboarded_user: user} do
       user = set_password(user)
 
       conn =
@@ -73,7 +94,7 @@ defmodule InterestSpotlightWeb.UserSessionControllerTest do
   end
 
   describe "POST /users/log-in - magic link" do
-    test "logs the user in", %{conn: conn, user: user} do
+    test "logs the user in", %{conn: conn, onboarded_user: user} do
       {token, _hashed_token} = generate_user_magic_link_token(user)
 
       conn =
@@ -82,17 +103,18 @@ defmodule InterestSpotlightWeb.UserSessionControllerTest do
         })
 
       assert get_session(conn, :user_token)
-      assert redirected_to(conn) == ~p"/"
+      assert redirected_to(conn) == ~p"/home"
 
       # Now do a logged in request and assert on the menu
-      conn = get(conn, ~p"/")
+      conn = get(conn, ~p"/home")
       response = html_response(conn, 200)
       assert response =~ user.email
-      assert response =~ ~p"/users/settings"
-      assert response =~ ~p"/users/log-out"
     end
 
-    test "confirms unconfirmed user", %{conn: conn, unconfirmed_user: user} do
+    test "confirms unconfirmed user and redirects to onboarding", %{
+      conn: conn,
+      unconfirmed_user: user
+    } do
       {token, _hashed_token} = generate_user_magic_link_token(user)
       refute user.confirmed_at
 
@@ -103,17 +125,14 @@ defmodule InterestSpotlightWeb.UserSessionControllerTest do
         })
 
       assert get_session(conn, :user_token)
-      assert redirected_to(conn) == ~p"/"
+      assert redirected_to(conn) == ~p"/home"
       assert Phoenix.Flash.get(conn.assigns.flash, :info) =~ "User confirmed successfully."
 
       assert Accounts.get_user!(user.id).confirmed_at
 
-      # Now do a logged in request and assert on the menu
-      conn = get(conn, ~p"/")
-      response = html_response(conn, 200)
-      assert response =~ user.email
-      assert response =~ ~p"/users/settings"
-      assert response =~ ~p"/users/log-out"
+      # New unconfirmed user needs to complete onboarding
+      conn = get(conn, ~p"/home")
+      assert redirected_to(conn) == ~p"/onboarding"
     end
 
     test "redirects to login page when magic link is invalid", %{conn: conn} do

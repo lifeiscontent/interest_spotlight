@@ -8,6 +8,19 @@
 import Config
 
 config :interest_spotlight, :scopes,
+  admin: [
+    default: false,
+    module: InterestSpotlight.Backoffice.Scope,
+    assign_key: :current_scope,
+    access_path: [:admin, :id],
+    schema_key: :admin_id,
+    schema_type: :id,
+    schema_table: :admins,
+    test_data_fixture: InterestSpotlight.BackofficeFixtures,
+    test_setup_helper: :register_and_log_in_admin
+  ]
+
+config :interest_spotlight, :scopes,
   user: [
     default: true,
     module: InterestSpotlight.Accounts.Scope,

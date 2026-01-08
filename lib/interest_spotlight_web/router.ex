@@ -1,6 +1,8 @@
 defmodule InterestSpotlightWeb.Router do
   use InterestSpotlightWeb, :router
 
+  import InterestSpotlightWeb.AdminAuth
+
   import InterestSpotlightWeb.UserAuth
 
   pipeline :browser do
@@ -13,6 +15,16 @@ defmodule InterestSpotlightWeb.Router do
     plug :fetch_current_scope_for_user
   end
 
+  pipeline :admin_browser do
+    plug :accepts, ["html"]
+    plug :fetch_session
+    plug :fetch_live_flash
+    plug :put_root_layout, html: {InterestSpotlightWeb.Layouts, :root}
+    plug :protect_from_forgery
+    plug :put_secure_browser_headers
+    plug :fetch_current_scope_for_admin
+  end
+
   pipeline :api do
     plug :accepts, ["json"]
   end
@@ -20,7 +32,9 @@ defmodule InterestSpotlightWeb.Router do
   scope "/", InterestSpotlightWeb do
     pipe_through :browser
 
-    get "/", PageController, :home
+    live "/", LandingLive, :index
+    # Serve uploaded files from external filesystem
+    get "/uploads/*path", UploadController, :show
   end
 
   # Other scopes may use custom stacks.
@@ -28,32 +42,45 @@ defmodule InterestSpotlightWeb.Router do
   #   pipe_through :api
   # end
 
-  # Enable LiveDashboard and Swoosh mailbox preview in development
+  # Enable Swoosh mailbox preview in development
   if Application.compile_env(:interest_spotlight, :dev_routes) do
-    # If you want to use the LiveDashboard in production, you should put
-    # it behind authentication and allow only admins to access it.
-    # If your application does not have an admins-only section yet,
-    # you can use Plug.BasicAuth to set up some basic authentication
-    # as long as you are also using SSL (which you should anyway).
-    import Phoenix.LiveDashboard.Router
-
     scope "/dev" do
       pipe_through :browser
 
-      live_dashboard "/dashboard", metrics: InterestSpotlightWeb.Telemetry
       forward "/mailbox", Plug.Swoosh.MailboxPreview
     end
   end
 
   ## Authentication routes
 
+  # Onboarding routes (authenticated but not requiring completed onboarding)
   scope "/", InterestSpotlightWeb do
     pipe_through [:browser, :require_authenticated_user]
 
-    live_session :require_authenticated_user,
+    live_session :onboarding,
       on_mount: [{InterestSpotlightWeb.UserAuth, :require_authenticated}] do
+      live "/onboarding", OnboardingLive.BasicInfo, :index
+      live "/onboarding/interests", OnboardingLive.Interests, :index
+      live "/onboarding/about", OnboardingLive.About, :index
+    end
+  end
+
+  # Regular user routes (authenticated + onboarded + non-admin)
+  scope "/", InterestSpotlightWeb do
+    pipe_through [:browser, :require_authenticated_user, :require_onboarded]
+
+    live_session :require_onboarded_user,
+      on_mount: [
+        {InterestSpotlightWeb.UserAuth, :require_authenticated},
+        {InterestSpotlightWeb.UserAuth, :require_onboarded}
+      ] do
+      live "/home", HomeLive.Index, :index
+      live "/profile", ProfileLive, :index
       live "/users/settings", UserLive.Settings, :edit
       live "/users/settings/confirm-email/:token", UserLive.Settings, :confirm_email
+
+      live "/connections", ConnectionsLive.Index, :index
+      live "/connections/:id", ConnectionsLive.Show, :show
     end
 
     post "/users/update-password", UserSessionController, :update_password
@@ -71,5 +98,49 @@ defmodule InterestSpotlightWeb.Router do
 
     post "/users/log-in", UserSessionController, :create
     delete "/users/log-out", UserSessionController, :delete
+  end
+
+  ## Admin authentication routes
+
+  import Phoenix.LiveDashboard.Router
+
+  scope "/", InterestSpotlightWeb do
+    pipe_through [:admin_browser, :require_authenticated_admin]
+
+    live_session :require_authenticated_admin,
+      on_mount: [{InterestSpotlightWeb.AdminAuth, :require_authenticated}] do
+      live "/admins/settings", AdminLive.Settings, :edit
+      live "/admins/settings/confirm-email/:token", AdminLive.Settings, :confirm_email
+      live "/admins/dashboard", AdminLive.Dashboard, :index
+      live "/admins/interests", AdminLive.Interests, :index
+    end
+
+    post "/admins/update-password", AdminSessionController, :update_password
+  end
+
+  # LiveDashboard - protected by admin authentication
+  scope "/admins" do
+    pipe_through [:admin_browser, :require_authenticated_admin]
+
+    live_dashboard "/live-dashboard",
+      metrics: InterestSpotlightWeb.Telemetry,
+      additional_pages: [
+        admin: InterestSpotlightWeb.Dashboard.AdminPage,
+        interests: InterestSpotlightWeb.Dashboard.InterestsPage
+      ]
+  end
+
+  scope "/", InterestSpotlightWeb do
+    pipe_through [:admin_browser]
+
+    live_session :current_admin,
+      on_mount: [{InterestSpotlightWeb.AdminAuth, :mount_current_scope}] do
+      live "/admins/register", AdminLive.Registration, :new
+      live "/admins/log-in", AdminLive.Login, :new
+      live "/admins/log-in/:token", AdminLive.Confirmation, :new
+    end
+
+    post "/admins/log-in", AdminSessionController, :create
+    delete "/admins/log-out", AdminSessionController, :delete
   end
 end

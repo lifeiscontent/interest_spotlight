@@ -42,3 +42,9 @@ config :phoenix_live_view,
 # Sort query params output of verified routes for robust url comparisons
 config :phoenix,
   sort_verified_routes_query_params: true
+
+# Configure uploads directory for tests
+config :interest_spotlight,
+       :uploads_directory,
+       System.get_env("UPLOADS_DIRECTORY_TEST") ||
+         Path.expand("../../tmp/test_uploads", __DIR__)

@@ -6,7 +6,7 @@ defmodule InterestSpotlight.Accounts do
   import Ecto.Query, warn: false
   alias InterestSpotlight.Repo
 
-  alias InterestSpotlight.Accounts.{User, UserToken, UserNotifier}
+  alias InterestSpotlight.Accounts.{Scope, User, UserToken, UserNotifier}
 
   ## Database getters
 
@@ -59,6 +59,34 @@ defmodule InterestSpotlight.Accounts do
 
   """
   def get_user!(id), do: Repo.get!(User, id)
+
+  @doc """
+  Lists all users excluding the given user.
+  """
+  def list_other_users(user_id) do
+    from(u in User,
+      where: u.id != ^user_id,
+      order_by: [asc: u.first_name, asc: u.last_name]
+    )
+    |> Repo.all()
+  end
+
+  @doc """
+  Checks if the user's profile is public.
+  """
+  def public_profile?(%User{profile_visibility: "public"}), do: true
+  def public_profile?(_), do: false
+
+  @doc """
+  Checks if the user has completed onboarding (has first_name, last_name, and location).
+  """
+  def onboarding_complete?(%User{first_name: first, last_name: last, location: loc})
+      when is_binary(first) and first != "" and
+             is_binary(last) and last != "" and
+             is_binary(loc) and loc != "",
+      do: true
+
+  def onboarding_complete?(_), do: false
 
   ## User registration
 
@@ -185,7 +213,14 @@ defmodule InterestSpotlight.Accounts do
   """
   def get_user_by_session_token(token) do
     {:ok, query} = UserToken.verify_session_token_query(token)
-    Repo.one(query)
+
+    case Repo.one(query) do
+      {user, authenticated_at, token_inserted_at} ->
+        {%{user | authenticated_at: authenticated_at}, token_inserted_at}
+
+      nil ->
+        nil
+    end
   end
 
   @doc """
@@ -279,6 +314,55 @@ defmodule InterestSpotlight.Accounts do
   def delete_user_session_token(token) do
     Repo.delete_all(from(UserToken, where: [token: ^token, context: "session"]))
     :ok
+  end
+
+  ## Profile
+
+  @doc """
+  Returns an `%Ecto.Changeset{}` for changing the user profile.
+
+  ## Examples
+
+      iex> change_user_profile(scope)
+      %Ecto.Changeset{data: %User{}}
+
+  """
+  def change_user_profile(%Scope{user: user}, attrs \\ %{}) do
+    User.profile_changeset(user, attrs)
+  end
+
+  @doc """
+  Updates the user profile.
+
+  ## Examples
+
+      iex> update_user_profile(scope, %{profile_photo: "path/to/photo.jpg"})
+      {:ok, %User{}}
+
+      iex> update_user_profile(scope, %{invalid: "data"})
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def update_user_profile(%Scope{user: user}, attrs) do
+    user
+    |> User.profile_changeset(attrs)
+    |> Repo.update()
+  end
+
+  @doc """
+  Returns an `%Ecto.Changeset{}` for changing the user onboarding info.
+  """
+  def change_user_onboarding(%Scope{user: user}, attrs \\ %{}) do
+    User.onboarding_changeset(user, attrs)
+  end
+
+  @doc """
+  Updates the user onboarding info (first_name, last_name, location).
+  """
+  def update_user_onboarding(%Scope{user: user}, attrs) do
+    user
+    |> User.onboarding_changeset(attrs)
+    |> Repo.update()
   end
 
   ## Token helper
